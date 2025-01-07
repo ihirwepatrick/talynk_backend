@@ -1,91 +1,53 @@
-const { Model, DataTypes } = require('sequelize');
-const sequelize = require('../../src/config/database');
+const { Model } = require('sequelize');
 
-class User extends Model {}
+module.exports = (sequelize, DataTypes) => {
+  class User extends Model {
+    static associate(models) {
+      // Check if Post model exists before creating association
+      if (models.Post) {
+        User.hasMany(models.Post, {
+          foreignKey: 'userId',
+          as: 'posts'
+        });
+      }
+    }
+  }
 
-User.init(
-  {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-    },
+  User.init({
     username: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
-      validate: {
-        len: [3, 30],
-      },
-    },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-      },
+      unique: true
     },
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
-    },
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    lastLogin: {
-      type: DataTypes.DATE,
-      allowNull: true,
+      allowNull: false
     },
     primaryPhone: {
       type: DataTypes.STRING,
-      allowNull: true,
-      validate: {
-        is: /^\+?[\d\s-()]{10,}$/,
-      },
+      allowNull: false
     },
     secondaryPhone: {
       type: DataTypes.STRING,
-      allowNull: true,
-      validate: {
-        is: /^\+?[\d\s-()]{10,}$/,
-      },
+      allowNull: true
     },
-  },
-  {
+    faceImageUrl: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+    lastLogin: {
+      type: DataTypes.DATE
+    }
+  }, {
     sequelize,
     modelName: 'User',
     timestamps: true,
-    paranoid: true,
-  }
-);
-
-User.associate = function(models) {
-  // User's approved posts
-  User.hasMany(models.Post, {
-    foreignKey: 'userId',
-    as: 'approvedPosts',
-    scope: {
-      status: 'approved'
-    }
+    paranoid: true
   });
 
-  // User's pending posts
-  User.hasMany(models.Post, {
-    foreignKey: 'userId',
-    as: 'pendingPosts',
-    scope: {
-      status: 'pending'
-    }
-  });
-
-  // Categories that the user has posted in
-  User.belongsToMany(models.Category, {
-    through: 'UserCategories',
-    foreignKey: 'userId',
-    as: 'postCategories'
-  });
-};
-
-module.exports = User;
+  return User;
+}

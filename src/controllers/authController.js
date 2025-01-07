@@ -1,4 +1,5 @@
-const { User } = require('../models');
+const db = require('../models');
+const { User } = db;
 const { verifyFaceRecognition } = require('../utils/faceRecognition');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -13,16 +14,7 @@ exports.register = async (req, res) => {
       interests = []
     } = req.body;
 
-    const faceImage = req.file; // Face image from middleware
-
-    // Verify face recognition
-    const faceVerificationResult = await verifyFaceRecognition(faceImage);
-    if (!faceVerificationResult.isValid) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Face verification failed'
-      });
-    }
+    const faceImage = req.file;
 
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -47,13 +39,8 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       primaryPhone,
       secondaryPhone,
-      faceImageUrl: faceImage.path // Save face image path
+      faceImageUrl: faceImage ? faceImage.path : null
     });
-
-    // Add user interests if any
-    if (interests.length > 0) {
-      await user.setInterests(interests);
-    }
 
     // Generate JWT token
     const token = jwt.sign(
