@@ -1,19 +1,7 @@
-const { Model } = require('sequelize');
+'use strict';
 
 module.exports = (sequelize, DataTypes) => {
-  class User extends Model {
-    static associate(models) {
-      // Check if Post model exists before creating association
-      if (models.Post) {
-        User.hasMany(models.Post, {
-          foreignKey: 'userId',
-          as: 'posts'
-        });
-      }
-    }
-  }
-
-  User.init({
+  const User = sequelize.define('User', {
     username: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -35,19 +23,19 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true
     },
-    isActive: {
+    isAdmin: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true
-    },
-    lastLogin: {
-      type: DataTypes.DATE
+      defaultValue: false,
+      allowNull: false
     }
-  }, {
-    sequelize,
-    modelName: 'User',
-    timestamps: true,
-    paranoid: true
-  });
+  }, {});
+
+  User.associate = function(models) {
+    User.hasMany(models.Post, {
+      foreignKey: 'userId',
+      as: 'posts'
+    });
+  };
 
   return User;
-}
+};

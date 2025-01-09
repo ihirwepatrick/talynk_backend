@@ -66,6 +66,10 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+    const role = document.getElementById('login-role').value;
+
     try {
         const response = await fetch('/api/auth/login', {
             method: 'POST',
@@ -73,31 +77,31 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                username: document.getElementById('login-username').value,
-                password: document.getElementById('login-password').value
+                username,
+                password
             })
         });
 
         const data = await response.json();
-        console.log('Login response:', data); // Debug log
+        console.log('Login response:', data);
 
         if (response.ok && data.data && data.data.token) {
-            // Store the token
             localStorage.setItem('token', data.data.token);
-            console.log('Token stored:', data.data.token); // Debug log
-            
-            // Store user info
             localStorage.setItem('user', JSON.stringify(data.data.user));
-            console.log('User stored:', data.data.user); // Debug log
 
-            // Redirect to posts page
-            window.location.href = '/posts.html';
+            // Redirect based on role
+            if (role === 'admin' && data.data.user.isAdmin) {
+                window.location.href = '/admin-dashboard.html';
+            } else if (role === 'user') {
+                window.location.href = '/posts.html';
+            } else {
+                alert('Invalid role selection for this user');
+            }
         } else {
             document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-            console.error('Login failed:', data); // Debug log
         }
     } catch (error) {
-        console.error('Login error:', error); // Debug log
+        console.error('Login error:', error);
         document.getElementById('response').textContent = 'Error: ' + error.message;
     }
 });

@@ -1,0 +1,162 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    background-color: #f4f4f4;
+}
+
+.navbar {
+    background-color: #333;
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    background-color: #555;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.stat-card h3 {
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card p {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.posts-section {
+    margin-top: 2rem;
+}
+
+.posts-section h2 {
+    margin: 2rem 0 1rem;
+    color: #333;
+}
+
+.posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.post-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.post-media {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.post-content {
+    padding: 1rem;
+}
+
+.post-title {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.post-meta {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.approval-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.approve-btn,
+.reject-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+}
+
+.approve-btn {
+    background-color: #28a745;
+}
+
+.reject-btn {
+    background-color: #dc3545;
+}
+
+.approve-btn:hover {
+    background-color: #218838;
+}
+
+.reject-btn:hover {
+    background-color: #c82333;
+}
+
+#logout-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#logout-btn:hover {
+    background-color: #c82333;
+} 

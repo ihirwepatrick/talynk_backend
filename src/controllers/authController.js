@@ -43,7 +43,8 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       primaryPhone,
       secondaryPhone,
-      faceImageUrl: req.file ? req.file.path : null
+      faceImageUrl: req.file ? req.file.path : null,
+      isAdmin: false // Ensure new registrations are not admin by default
     });
 
     // Generate token
@@ -60,7 +61,8 @@ exports.register = async (req, res) => {
           id: user.id,
           username: user.username,
           primaryPhone: user.primaryPhone,
-          secondaryPhone: user.secondaryPhone
+          secondaryPhone: user.secondaryPhone,
+          isAdmin: user.isAdmin // Include isAdmin in response
         },
         token
       }
@@ -129,7 +131,8 @@ exports.login = async (req, res) => {
           id: user.id,
           username: user.username,
           primaryPhone: user.primaryPhone,
-          secondaryPhone: user.secondaryPhone
+          secondaryPhone: user.secondaryPhone,
+          isAdmin: user.isAdmin // Include isAdmin in response
         },
         token
       }

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talynk Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Talynk Admin</div>
+        <div class="nav-links">
+            <a href="/admin-dashboard.html" class="active">Dashboard</a>
+            <a href="/posts.html">View All Posts</a>
+        </div>
+        <div class="nav-user">
+            <span id="username-display"></span>
+            <button id="logout-btn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <h3>Pending Posts</h3>
+                <p id="pending-count">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Approved Posts</h3>
+                <p id="approved-count">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Rejected Posts</h3>
+                <p id="rejected-count">0</p>
+            </div>
+        </div>
+
+        <div class="posts-section">
+            <h2>Pending Posts</h2>
+            <div id="pending-posts" class="posts-grid">
+                <!-- Pending posts will be loaded here -->
+            </div>
+
+            <h2>Approved Posts</h2>
+            <div id="approved-posts" class="posts-grid">
+                <!-- Approved posts will be loaded here -->
+            </div>
+
+            <h2>Rejected Posts</h2>
+            <div id="rejected-posts" class="posts-grid">
+                <!-- Rejected posts will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin-dashboard.js"></script>
+</body>
+</html> 

@@ -76,33 +76,15 @@ exports.createPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
     try {
-        const { page = 1, limit = 12, categoryId, sort = 'latest' } = req.query;
-        const offset = (page - 1) * limit;
-
-        // Build where clause
-        const where = { status: 'approved' };
-        if (categoryId) {
-            where.categoryId = categoryId;
+        // Check if user is admin
+        if (!req.user.isAdmin) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Access denied. Admin privileges required.'
+            });
         }
 
-        // Build order clause
-        let order;
-        switch (sort) {
-            case 'oldest':
-                order = [['createdAt', 'ASC']];
-                break;
-            case 'popular':
-                order = [['views', 'DESC']]; // If you have a views column
-                break;
-            default: // 'latest'
-                order = [['createdAt', 'DESC']];
-        }
-
-        const posts = await Post.findAndCountAll({
-            where,
-            limit: parseInt(limit),
-            offset: parseInt(offset),
-            order,
+        const posts = await Post.findAll({
             include: [
                 {
                     model: User,
@@ -113,22 +95,19 @@ exports.getAllPosts = async (req, res) => {
                     model: Category,
                     as: 'category'
                 }
-            ]
+            ],
+            order: [['createdAt', 'DESC']]
         });
+
+        console.log('Found posts:', posts.length); // Debug log
 
         res.json({
             status: 'success',
-            data: posts.rows,
-            pagination: {
-                total: posts.count,
-                pages: Math.ceil(posts.count / limit),
-                currentPage: parseInt(page),
-                limit: parseInt(limit)
-            }
+            data: posts
         });
 
     } catch (error) {
-        console.error('Error fetching posts:', error);
+        console.error('Error fetching all posts:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error fetching posts',
@@ -200,6 +179,14 @@ exports.getPendingPosts = async (req, res) => {
 
 exports.updatePostStatus = async (req, res) => {
     try {
+        // Check if user is admin
+        if (!req.user.isAdmin) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Access denied. Admin privileges required.'
+            });
+        }
+
         const { id } = req.params;
         const { status } = req.body;
 
