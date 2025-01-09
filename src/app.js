@@ -14,6 +14,7 @@ app.use(cors()); // Enable CORS
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(morgan('dev')); // Logging
+app.use(express.static('public'));
 
 // Rate limiting
 const limiter = rateLimit({
