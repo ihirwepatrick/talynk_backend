@@ -4,12 +4,23 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
   try {
+    console.log('Registration request body:', req.body);
+    console.log('Registration file:', req.file);
+
     const {
       username,
       password,
       primaryPhone,
       secondaryPhone
     } = req.body;
+
+    // Validate required fields
+    if (!username || !password || !primaryPhone) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Missing required fields'
+      });
+    }
 
     // Check if user exists
     const existingUser = await User.findOne({
@@ -38,7 +49,7 @@ exports.register = async (req, res) => {
     // Generate token
     const token = jwt.sign(
       { id: user.id },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'your-default-secret-key',
       { expiresIn: '24h' }
     );
 
@@ -56,10 +67,11 @@ exports.register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error details:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error during registration'
+      message: 'Error during registration',
+      error: error.message
     });
   }
 };
