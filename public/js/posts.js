@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     loadUserInfo();
     loadCategories();
-    loadPosts();
+    loadPosts(true); // Load initial posts
+    setupEventListeners();
 });
 
 // Load user information
@@ -44,7 +45,7 @@ async function loadCategories() {
         ).join('');
         
         categorySelect.innerHTML = categoryOptions;
-        categoryFilter.innerHTML += categoryOptions;
+        categoryFilter.innerHTML = '<option value="">All Categories</option>' + categoryOptions;
     } catch (error) {
         console.error('Error loading categories:', error);
     }
@@ -58,8 +59,14 @@ async function loadPosts(reset = false) {
     const sortBy = document.getElementById('sort-filter').value;
     
     try {
-        const response = await fetch(`/api/posts?page=${currentPage}&limit=${postsPerPage}&categoryId=${categoryId}&sort=${sortBy}`);
+        const response = await fetch(`/api/posts?page=${currentPage}&limit=${postsPerPage}&categoryId=${categoryId}&sort=${sortBy}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        
         const data = await response.json();
+        console.log('Posts data:', data); // Debug log
         
         const postsGrid = document.getElementById('posts-grid');
         
@@ -67,13 +74,19 @@ async function loadPosts(reset = false) {
             postsGrid.innerHTML = '';
         }
         
-        data.data.forEach(post => {
-            postsGrid.appendChild(createPostCard(post));
-        });
-        
-        // Hide load more button if no more posts
-        document.getElementById('load-more').style.display = 
-            data.data.length < postsPerPage ? 'none' : 'block';
+        if (data.data && data.data.length > 0) {
+            data.data.forEach(post => {
+                postsGrid.appendChild(createPostCard(post));
+            });
+            
+            document.getElementById('load-more').style.display = 
+                data.data.length < postsPerPage ? 'none' : 'block';
+        } else {
+            if (reset) {
+                postsGrid.innerHTML = '<div class="no-posts">No posts found</div>';
+            }
+            document.getElementById('load-more').style.display = 'none';
+        }
             
         currentPage++;
     } catch (error) {
@@ -94,98 +107,103 @@ function createPostCard(post) {
         ${mediaElement}
         <div class="post-content">
             <div class="post-title">${post.title}</div>
-            <div class="post-caption">${post.caption}</div>
+            <div class="post-caption">${post.caption || ''}</div>
             <div class="post-meta">
-                <span>${post.category.name}</span>
-                <span>${new Date(post.createdAt).toLocaleDateString()}</span>
+                <span class="post-category">${post.category ? post.category.name : 'Uncategorized'}</span>
+                <span class="post-date">${new Date(post.createdAt).toLocaleDateString()}</span>
             </div>
+            <div class="post-status ${post.status}">${post.status}</div>
         </div>
     `;
     
     return div;
 }
 
-// Modal handling
-const modal = document.getElementById('create-post-modal');
-const createPostBtn = document.getElementById('create-post-btn');
-const closeBtn = document.getElementsByClassName('close')[0];
+// Setup event listeners
+function setupEventListeners() {
+    // Create post modal
+    const modal = document.getElementById('create-post-modal');
+    const createPostBtn = document.getElementById('create-post-btn');
+    const closeBtn = document.getElementsByClassName('close')[0];
 
-createPostBtn.onclick = () => modal.style.display = 'block';
-closeBtn.onclick = () => modal.style.display = 'none';
+    createPostBtn.onclick = () => modal.style.display = 'block';
+    closeBtn.onclick = () => modal.style.display = 'none';
 
-window.onclick = (event) => {
-    if (event.target === modal) {
-        modal.style.display = 'none';
-    }
-}
-
-// Handle post creation
-document.getElementById('post-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('title', document.getElementById('title').value);
-    formData.append('caption', document.getElementById('caption').value);
-    formData.append('categoryId', document.getElementById('category').value);
-    
-    const mediaFile = document.getElementById('media').files[0];
-    if (mediaFile) {
-        formData.append('media', mediaFile);
-    }
-
-    try {
-        const response = await fetch('/api/posts', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: formData
-        });
-
-        if (response.ok) {
-            alert('Post created successfully!');
+    window.onclick = (event) => {
+        if (event.target === modal) {
             modal.style.display = 'none';
-            e.target.reset();
-            document.getElementById('media-preview').innerHTML = '';
-            loadPosts(true);
-        } else {
-            const data = await response.json();
-            alert('Failed to create post: ' + data.message);
         }
-    } catch (error) {
-        console.error('Error creating post:', error);
-        alert('Failed to create post: ' + error.message);
     }
-});
 
-// Handle media preview
-document.getElementById('media').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const preview = document.getElementById('media-preview');
-        const reader = new FileReader();
+    // Post form submission
+    document.getElementById('post-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
         
-        reader.onload = function(e) {
-            if (file.type.startsWith('video/')) {
-                preview.innerHTML = `<video src="${e.target.result}" controls></video>`;
+        const formData = new FormData();
+        formData.append('title', document.getElementById('title').value);
+        formData.append('caption', document.getElementById('caption').value);
+        formData.append('categoryId', document.getElementById('category').value);
+        
+        const mediaFile = document.getElementById('media').files[0];
+        if (mediaFile) {
+            formData.append('media', mediaFile);
+        }
+
+        try {
+            const response = await fetch('/api/posts', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                alert('Post created successfully!');
+                modal.style.display = 'none';
+                e.target.reset();
+                document.getElementById('media-preview').innerHTML = '';
+                loadPosts(true);
             } else {
-                preview.innerHTML = `<img src="${e.target.result}">`;
+                const data = await response.json();
+                alert('Failed to create post: ' + data.message);
             }
+        } catch (error) {
+            console.error('Error creating post:', error);
+            alert('Failed to create post: ' + error.message);
         }
-        
-        reader.readAsDataURL(file);
-    }
-});
+    });
 
-// Handle filters
-document.getElementById('category-filter').addEventListener('change', () => loadPosts(true));
-document.getElementById('sort-filter').addEventListener('change', () => loadPosts(true));
+    // Filters
+    document.getElementById('category-filter').addEventListener('change', () => loadPosts(true));
+    document.getElementById('sort-filter').addEventListener('change', () => loadPosts(true));
 
-// Handle load more
-document.getElementById('load-more').addEventListener('click', () => loadPosts());
+    // Load more
+    document.getElementById('load-more').addEventListener('click', () => loadPosts());
+
+    // Media preview
+    document.getElementById('media').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const preview = document.getElementById('media-preview');
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                if (file.type.startsWith('video/')) {
+                    preview.innerHTML = `<video src="${e.target.result}" controls></video>`;
+                } else {
+                    preview.innerHTML = `<img src="${e.target.result}">`;
+                }
+            }
+            
+            reader.readAsDataURL(file);
+        }
+    });
+}
 
 // Handle logout
 document.getElementById('logout-btn').addEventListener('click', () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     window.location.href = '/test.html';
 }); 
