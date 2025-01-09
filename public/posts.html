@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talynk Posts</title>
+    <link rel="stylesheet" href="/css/posts.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Talynk</div>
+        <div class="nav-links">
+            <a href="/dashboard.html">Dashboard</a>
+            <a href="/posts.html" class="active">Posts</a>
+            <a href="#" id="create-post-btn">Create Post</a>
+        </div>
+        <div class="nav-user">
+            <span id="username-display"></span>
+            <button id="logout-btn">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Create Post Modal -->
+    <div id="create-post-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Create New Post</h2>
+            <form id="post-form">
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="caption">Caption:</label>
+                    <textarea id="caption" name="caption" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category:</label>
+                    <select id="category" name="categoryId" required>
+                        <!-- Categories will be loaded dynamically -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="media">Upload Media:</label>
+                    <input type="file" id="media" name="media" accept="image/*,video/*" required>
+                    <div id="media-preview"></div>
+                </div>
+
+                <button type="submit">Create Post</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Filters -->
+        <div class="filters">
+            <select id="category-filter">
+                <option value="">All Categories</option>
+                <!-- Categories will be loaded dynamically -->
+            </select>
+            <select id="sort-filter">
+                <option value="latest">Latest</option>
+                <option value="oldest">Oldest</option>
+                <option value="popular">Most Popular</option>
+            </select>
+        </div>
+
+        <!-- Posts Grid -->
+        <div id="posts-grid" class="posts-grid">
+            <!-- Posts will be loaded dynamically -->
+        </div>
+
+        <!-- Load More Button -->
+        <button id="load-more" class="load-more-btn">Load More</button>
+    </div>
+
+    <script src="/js/posts.js"></script>
+</body>
+</html> 

@@ -46,4 +46,44 @@ button:hover {
     color: red;
     margin-top: 5px;
     font-size: 0.9em;
+}
+
+.tabs {
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    margin-right: 10px;
+    border: none;
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+#auth-status {
+    background-color: #f8f9fa;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+#logout-btn {
+    background-color: #dc3545;
+}
+
+#logout-btn:hover {
+    background-color: #c82333;
 } 

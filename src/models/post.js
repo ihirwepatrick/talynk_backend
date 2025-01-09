@@ -1,49 +1,36 @@
-const { Model } = require('sequelize');
+'use strict';
+const { v4: uuidv4 } = require('uuid');
 
 module.exports = (sequelize, DataTypes) => {
-  class Post extends Model {
-    static associate(models) {
-      // Check if models exist before creating associations
-      if (models.User) {
-        Post.belongsTo(models.User, {
-          foreignKey: 'userId',
-          as: 'author'
-        });
-      }
-      
-      if (models.Category) {
-        Post.belongsTo(models.Category, {
-          foreignKey: 'categoryId',
-          as: 'category'
-        });
-      }
-    }
-  }
-
-  Post.init({
+  const Post = sequelize.define('Post', {
     publicId: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
+      unique: true,
+      defaultValue: () => uuidv4()
     },
-    mediaType: {
-      type: DataTypes.ENUM('video', 'picture'),
-      allowNull: false
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: true
+      }
+    },
+    caption: {
+      type: DataTypes.TEXT,
+      allowNull: true
     },
     mediaUrl: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    mediaType: {
+      type: DataTypes.ENUM('image', 'video'),
       allowNull: false
     },
     status: {
       type: DataTypes.ENUM('pending', 'approved', 'rejected'),
       defaultValue: 'pending'
-    },
-    title: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    description: {
-      type: DataTypes.TEXT
     },
     userId: {
       type: DataTypes.INTEGER,
@@ -53,11 +40,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     }
-  }, {
-    sequelize,
-    modelName: 'Post',
-    timestamps: true
-  });
+  }, {});
+
+  Post.associate = function(models) {
+    Post.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'author'
+    });
+    Post.belongsTo(models.Category, {
+      foreignKey: 'categoryId',
+      as: 'category'
+    });
+  };
 
   return Post;
 };

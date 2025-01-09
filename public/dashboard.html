@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talynk Dashboard</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Talynk Dashboard</div>
+        <div class="nav-user">
+            <span id="username-display"></span>
+            <button id="logout-btn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- User Section -->
+        <div id="user-section">
+            <h2>Upload New Video/Image</h2>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category:</label>
+                    <select id="category" name="categoryId" required>
+                        <!-- Categories will be loaded dynamically -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="media">Upload Media:</label>
+                    <input type="file" id="media" name="media" accept="image/*,video/*" required>
+                    <div id="media-preview"></div>
+                </div>
+
+                <button type="submit">Upload</button>
+            </form>
+
+            <h2>My Uploads</h2>
+            <div id="my-uploads" class="media-grid">
+                <!-- User's uploads will be displayed here -->
+            </div>
+        </div>
+
+        <!-- Admin Section -->
+        <div id="admin-section" style="display: none;">
+            <h2>Pending Approvals</h2>
+            <div id="pending-uploads" class="media-grid">
+                <!-- Pending uploads will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/dashboard.js"></script>
+</body>
+</html> 

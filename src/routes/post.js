@@ -1,18 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const postController = require('../controllers/postController');
-const { authenticate } = require('../middlewares/auth');
 const { uploadMedia } = require('../middlewares/upload');
+const { authenticate } = require('../middlewares/auth');
 
 // Public routes
-router.get('/', postController.getAllPosts);
-router.get('/:id', postController.getPost);
+router.get('/posts', postController.getAllPosts);
 
-// Protected routes
-router.use(authenticate);
-router.post('/', uploadMedia, postController.createPost);
-router.put('/:id', postController.updatePost);
-router.delete('/:id', postController.deletePost);
-router.patch('/:id/status', postController.updatePostStatus);
+// Protected routes (require authentication)
+router.post('/posts', authenticate, uploadMedia, postController.createPost);
+router.get('/users/me/posts', authenticate, postController.getPostsByUser);
+
+// Admin routes
+router.get('/posts/pending', authenticate, postController.getPendingPosts);
+router.patch('/posts/:id/status', authenticate, postController.updatePostStatus);
 
 module.exports = router; 

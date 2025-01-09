@@ -9,36 +9,67 @@
 <body>
     <h1>Talynk API Test</h1>
 
-    <h2>Register User</h2>
-    <form id="registerForm">
-        <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-        </div>
+    <div id="auth-status">
+        <p>Status: <span id="login-status">Not logged in</span></p>
+        <button id="logout-btn" style="display: none;">Logout</button>
+    </div>
 
-        <div class="form-group">
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="register">Register</button>
+        <button class="tab-btn" data-tab="login">Login</button>
+    </div>
 
-        <div class="form-group">
-            <label for="primaryPhone">Primary Phone:</label>
-            <input type="tel" id="primaryPhone" name="primaryPhone" required>
-        </div>
+    <!-- Register Form -->
+    <div id="register-form" class="tab-content active">
+        <h2>Register User</h2>
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="reg-username">Username:</label>
+                <input type="text" id="reg-username" name="username" required>
+            </div>
 
-        <div class="form-group">
-            <label for="secondaryPhone">Secondary Phone:</label>
-            <input type="tel" id="secondaryPhone" name="secondaryPhone">
-        </div>
+            <div class="form-group">
+                <label for="reg-password">Password:</label>
+                <input type="password" id="reg-password" name="password" required>
+            </div>
 
-        <div class="form-group">
-            <label for="faceImage">Face Image:</label>
-            <input type="file" id="faceImage" name="faceImage" accept="image/*" required>
-            <div id="imagePreview"></div>
-        </div>
+            <div class="form-group">
+                <label for="primaryPhone">Primary Phone:</label>
+                <input type="tel" id="primaryPhone" name="primaryPhone" required>
+            </div>
 
-        <button type="submit">Register</button>
-    </form>
+            <div class="form-group">
+                <label for="secondaryPhone">Secondary Phone:</label>
+                <input type="tel" id="secondaryPhone" name="secondaryPhone">
+            </div>
+
+            <div class="form-group">
+                <label for="faceImage">Face Image:</label>
+                <input type="file" id="faceImage" name="faceImage" accept="image/*" required>
+                <div id="imagePreview"></div>
+            </div>
+
+            <button type="submit">Register</button>
+        </form>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login-form" class="tab-content">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="login-username">Username:</label>
+                <input type="text" id="login-username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="login-password">Password:</label>
+                <input type="password" id="login-password" name="password" required>
+            </div>
+
+            <button type="submit">Login</button>
+        </form>
+    </div>
 
     <h3>Response:</h3>
     <pre id="response"></pre>

@@ -8,9 +8,8 @@ router.get('/', categoryController.getAllCategories);
 router.get('/:id', categoryController.getCategory);
 
 // Admin routes
-router.use(authenticate, isAdmin);
-router.post('/', categoryController.createCategory);
-router.put('/:id', categoryController.updateCategory);
-router.delete('/:id', categoryController.deleteCategory);
+router.post('/', authenticate, isAdmin, categoryController.createCategory);
+router.put('/:id', authenticate, isAdmin, categoryController.updateCategory);
+router.delete('/:id', authenticate, isAdmin, categoryController.deleteCategory);
 
 module.exports = router; 

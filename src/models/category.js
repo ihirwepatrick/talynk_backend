@@ -1,17 +1,7 @@
-const { Model } = require('sequelize');
+'use strict';
 
 module.exports = (sequelize, DataTypes) => {
-  class Category extends Model {
-    static associate(models) {
-      // define associations here
-      Category.hasMany(models.Post, {
-        foreignKey: 'categoryId',
-        as: 'posts'
-      });
-    }
-  }
-
-  Category.init({
+  const Category = sequelize.define('Category', {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -21,11 +11,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: true
     }
-  }, {
-    sequelize,
-    modelName: 'Category',
-    timestamps: true
-  });
+  }, {});
+
+  Category.associate = function(models) {
+    Category.hasMany(models.Post, {
+      foreignKey: 'categoryId',
+      as: 'posts'
+    });
+  };
 
   return Category;
 }; 

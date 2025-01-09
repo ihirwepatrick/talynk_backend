@@ -1,176 +1,238 @@
-const { Post, Category } = require('../models');
-
-exports.getAllPosts = async (req, res) => {
-  try {
-    const posts = await Post.findAll({
-      where: { status: 'approved' },
-      include: ['author', 'category']
-    });
-    res.json({
-      status: 'success',
-      data: posts
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Error fetching posts'
-    });
-  }
-};
-
-exports.getPost = async (req, res) => {
-  try {
-    const post = await Post.findOne({
-      where: { 
-        id: req.params.id,
-        status: 'approved'
-      },
-      include: ['author', 'category']
-    });
-
-    if (!post) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Post not found'
-      });
-    }
-
-    res.json({
-      status: 'success',
-      data: post
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Error fetching post'
-    });
-  }
-};
+const { Post, Category, User } = require('../models');
+const path = require('path');
 
 exports.createPost = async (req, res) => {
-  try {
-    const { title, description, categoryId } = req.body;
-    const mediaUrl = req.file ? req.file.path : null;
-    const mediaType = req.file ? 
-      (req.file.mimetype.startsWith('video/') ? 'video' : 'picture') : 
-      null;
+    try {
+        console.log('Request body:', req.body);
+        console.log('Request file:', req.file);
 
-    const post = await Post.create({
-      title,
-      description,
-      mediaUrl,
-      mediaType,
-      userId: req.user.id,
-      categoryId,
-      status: 'pending' // All new posts start as pending
-    });
+        if (!req.file) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Media file is required'
+            });
+        }
 
-    res.status(201).json({
-      status: 'success',
-      data: post
-    });
-  } catch (error) {
-    console.error('Create post error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Error creating post'
-    });
-  }
+        const { title, caption, categoryId } = req.body;
+
+        // Validate required fields
+        if (!title || !categoryId) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Title and category are required'
+            });
+        }
+
+        // Determine media type
+        const mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
+        
+        // Create relative path for media URL
+        const mediaUrl = path.join('uploads', 
+            mediaType === 'video' ? 'videos' : 'images',
+            req.file.filename
+        ).replace(/\\/g, '/'); // Convert Windows backslashes to forward slashes
+
+        // Create post
+        const post = await Post.create({
+            title,
+            caption,
+            categoryId,
+            mediaUrl,
+            mediaType,
+            userId: req.user.id, // From auth middleware
+            status: 'pending'
+        });
+
+        // Fetch the created post with associations
+        const createdPost = await Post.findByPk(post.id, {
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ]
+        });
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Post created successfully',
+            data: createdPost
+        });
+
+    } catch (error) {
+        console.error('Post creation error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error creating post',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
 };
 
-exports.updatePost = async (req, res) => {
-  try {
-    const { title, description } = req.body;
-    const post = await Post.findOne({
-      where: { 
-        id: req.params.id,
-        userId: req.user.id
-      }
-    });
+exports.getAllPosts = async (req, res) => {
+    try {
+        const { page = 1, limit = 12, categoryId, sort = 'latest' } = req.query;
+        const offset = (page - 1) * limit;
 
-    if (!post) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Post not found'
-      });
+        // Build where clause
+        const where = { status: 'approved' };
+        if (categoryId) {
+            where.categoryId = categoryId;
+        }
+
+        // Build order clause
+        let order;
+        switch (sort) {
+            case 'oldest':
+                order = [['createdAt', 'ASC']];
+                break;
+            case 'popular':
+                order = [['views', 'DESC']]; // If you have a views column
+                break;
+            default: // 'latest'
+                order = [['createdAt', 'DESC']];
+        }
+
+        const posts = await Post.findAndCountAll({
+            where,
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            order,
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ]
+        });
+
+        res.json({
+            status: 'success',
+            data: posts.rows,
+            pagination: {
+                total: posts.count,
+                pages: Math.ceil(posts.count / limit),
+                currentPage: parseInt(page),
+                limit: parseInt(limit)
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching posts',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
-
-    await post.update({ 
-      title, 
-      description,
-      status: 'pending' // Reset to pending when updated
-    });
-
-    res.json({
-      status: 'success',
-      data: post
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Error updating post'
-    });
-  }
 };
 
-exports.deletePost = async (req, res) => {
-  try {
-    const result = await Post.destroy({
-      where: { 
-        id: req.params.id,
-        userId: req.user.id
-      }
-    });
+exports.getPostsByUser = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: { userId: req.user.id },
+            include: [
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
 
-    if (!result) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Post not found'
-      });
+        res.json({
+            status: 'success',
+            data: posts
+        });
+
+    } catch (error) {
+        console.error('Error fetching user posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching user posts',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
+};
 
-    res.json({
-      status: 'success',
-      message: 'Post deleted successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Error deleting post'
-    });
-  }
+exports.getPendingPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: { status: 'pending' },
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            status: 'success',
+            data: posts
+        });
+
+    } catch (error) {
+        console.error('Error fetching pending posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching pending posts',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
 };
 
 exports.updatePostStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-    const post = await Post.findByPk(req.params.id);
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
 
-    if (!post) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Post not found'
-      });
+        if (!['pending', 'approved', 'rejected'].includes(status)) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Invalid status value'
+            });
+        }
+
+        const post = await Post.findByPk(id);
+
+        if (!post) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Post not found'
+            });
+        }
+
+        await post.update({ status });
+
+        res.json({
+            status: 'success',
+            message: 'Post status updated successfully',
+            data: post
+        });
+
+    } catch (error) {
+        console.error('Error updating post status:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error updating post status',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
-
-    // Validate status
-    if (!['pending', 'approved', 'rejected'].includes(status)) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid status value'
-      });
-    }
-
-    await post.update({ status });
-
-    res.json({
-      status: 'success',
-      data: post
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Error updating post status'
-    });
-  }
 }; 

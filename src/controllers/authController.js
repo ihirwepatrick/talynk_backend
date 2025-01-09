@@ -67,7 +67,7 @@ exports.register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Registration error details:', error);
+    console.error('Registration error:', error);
     res.status(500).json({
       status: 'error',
       message: 'Error during registration',
@@ -79,6 +79,14 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
+
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Username and password are required'
+      });
+    }
 
     // Find user
     const user = await User.findOne({
@@ -102,17 +110,17 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Generate token
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET || 'your-default-secret-key',
+      { expiresIn: '24h' }
+    );
+
     // Update last login
     await user.update({
       lastLogin: new Date()
     });
-
-    // Generate token
-    const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
 
     res.json({
       status: 'success',
@@ -131,16 +139,26 @@ exports.login = async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error during login'
+      message: 'Error during login',
+      error: error.message
     });
   }
 };
 
 exports.logout = async (req, res) => {
-  // Since we're using JWT, we don't need to do anything server-side
-  // The client should remove the token
-  res.json({
-    status: 'success',
-    message: 'Logged out successfully'
-  });
+  try {
+    // Since we're using JWT, we don't need to do anything server-side
+    // The client will remove the token
+    res.json({
+      status: 'success',
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error during logout',
+      error: error.message
+    });
+  }
 }; 
