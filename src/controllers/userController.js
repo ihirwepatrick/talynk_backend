@@ -1,42 +1,104 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const User = require('models/User');
+const { User, Post } = require('../models');
 
-// Register a new user
-exports.register = async (req, res) => {
+exports.getPublicProfile = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await User.create({ username, email, password: hashedPassword });
-    res.status(201).json({ message: 'User registered successfully', user: newUser });
+    const user = await User.findOne({
+      where: { username: req.params.username },
+      attributes: ['id', 'username', 'createdAt'],
+      include: [{
+        model: Post,
+        as: 'posts',
+        where: { status: 'approved' },
+        required: false
+      }]
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      data: user
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to register user' });
+    res.status(500).json({
+      status: 'error',
+      message: 'Error fetching user profile'
+    });
   }
 };
 
-// Login a user
-exports.login = async (req, res) => {
+exports.getMyProfile = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({ message: 'Login successful', token });
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
+    res.json({
+      status: 'success',
+      data: user
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to login' });
+    res.status(500).json({
+      status: 'error',
+      message: 'Error fetching profile'
+    });
   }
 };
 
-// Get user profile
-exports.getProfile = async (req, res) => {
+exports.updateProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
-    res.status(200).json(user);
+    const { primaryPhone, secondaryPhone } = req.body;
+    await User.update(
+      { primaryPhone, secondaryPhone },
+      { where: { id: req.user.id } }
+    );
+    res.json({
+      status: 'success',
+      message: 'Profile updated successfully'
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    res.status(500).json({
+      status: 'error',
+      message: 'Error updating profile'
+    });
+  }
+};
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    await User.destroy({
+      where: { id: req.user.id }
+    });
+    res.json({
+      status: 'success',
+      message: 'Account deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Error deleting account'
+    });
+  }
+};
+
+exports.getMyPosts = async (req, res) => {
+  try {
+    const posts = await Post.findAll({
+      where: { userId: req.user.id },
+      include: ['category']
+    });
+    res.json({
+      status: 'success',
+      data: posts
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Error fetching posts'
+    });
   }
 };

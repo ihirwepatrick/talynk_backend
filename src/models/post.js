@@ -3,16 +3,20 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Post extends Model {
     static associate(models) {
-      // define associations here
-      Post.belongsTo(models.User, {
-        foreignKey: 'userId',
-        as: 'author'
-      });
+      // Check if models exist before creating associations
+      if (models.User) {
+        Post.belongsTo(models.User, {
+          foreignKey: 'userId',
+          as: 'author'
+        });
+      }
       
-      Post.belongsTo(models.Category, {
-        foreignKey: 'categoryId',
-        as: 'category'
-      });
+      if (models.Category) {
+        Post.belongsTo(models.Category, {
+          foreignKey: 'categoryId',
+          as: 'category'
+        });
+      }
     }
   }
 

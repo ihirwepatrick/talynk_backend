@@ -19,6 +19,15 @@ if (config.use_env_variable) {
   );
 }
 
+// Test the database connection
+sequelize.authenticate()
+  .then(() => {
+    console.log('✅ PostgreSQL Database connection has been established successfully.');
+  })
+  .catch(err => {
+    console.error('❌ Unable to connect to the database:', err);
+  });
+
 fs.readdirSync(__dirname)
   .filter(file => {
     return (

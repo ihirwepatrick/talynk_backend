@@ -1,6 +1,4 @@
-const db = require('../models');
-const { User } = db;
-const { verifyFaceRecognition } = require('../utils/faceRecognition');
+const { User } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -10,17 +8,12 @@ exports.register = async (req, res) => {
       username,
       password,
       primaryPhone,
-      secondaryPhone,
-      interests = []
+      secondaryPhone
     } = req.body;
 
-    const faceImage = req.file;
-
-    // Check if user already exists
+    // Check if user exists
     const existingUser = await User.findOne({
-      where: {
-        username: username
-      }
+      where: { username }
     });
 
     if (existingUser) {
@@ -39,10 +32,10 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       primaryPhone,
       secondaryPhone,
-      faceImageUrl: faceImage ? faceImage.path : null
+      faceImageUrl: req.file ? req.file.path : null
     });
 
-    // Generate JWT token
+    // Generate token
     const token = jwt.sign(
       { id: user.id },
       process.env.JWT_SECRET,
@@ -69,4 +62,73 @@ exports.register = async (req, res) => {
       message: 'Error during registration'
     });
   }
+};
+
+exports.login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // Find user
+    const user = await User.findOne({
+      where: { username }
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Update last login
+    await user.update({
+      lastLogin: new Date()
+    });
+
+    // Generate token
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      status: 'success',
+      data: {
+        user: {
+          id: user.id,
+          username: user.username,
+          primaryPhone: user.primaryPhone,
+          secondaryPhone: user.secondaryPhone
+        },
+        token
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error during login'
+    });
+  }
+};
+
+exports.logout = async (req, res) => {
+  // Since we're using JWT, we don't need to do anything server-side
+  // The client should remove the token
+  res.json({
+    status: 'success',
+    message: 'Logged out successfully'
+  });
 }; 

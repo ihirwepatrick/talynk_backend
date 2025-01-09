@@ -1,7 +1,8 @@
 const multer = require('multer');
 const path = require('path');
 
-const storage = multer.diskStorage({
+// Configure storage for face images
+const faceStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/faces');
   },
@@ -11,20 +12,53 @@ const storage = multer.diskStorage({
   }
 });
 
-const uploadFaceImage = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+// Configure storage for media (posts)
+const mediaStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const isVideo = file.mimetype.startsWith('video/');
+    const uploadPath = isVideo ? 'uploads/videos' : 'uploads/images';
+    cb(null, uploadPath);
   },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Not an image! Please upload an image.'), false);
-    }
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
-}).single('faceImage');
+});
 
-module.exports = {
-  uploadFaceImage
-}; 
+// File filters
+const imageFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only images are allowed for face verification'), false);
+  }
+};
+
+const mediaFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Unsupported file type'), false);
+  }
+};
+
+// Create multer instances
+const faceUpload = multer({
+  storage: faceStorage,
+  fileFilter: imageFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit for face images
+  }
+});
+
+const mediaUpload = multer({
+  storage: mediaStorage,
+  fileFilter: mediaFilter,
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit for media
+  }
+});
+
+// Export middleware
+exports.uploadFaceImage = faceUpload.single('faceImage');
+exports.uploadMedia = mediaUpload.single('media'); 
