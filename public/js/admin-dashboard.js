@@ -62,22 +62,20 @@ function setupEventListeners() {
 // Load Dashboard Data
 async function loadDashboardData() {
     try {
-        const startDate = document.getElementById('start-date').value;
-        const endDate = document.getElementById('end-date').value;
+        console.log('Loading dashboard data');
+        console.log('Token:', localStorage.getItem('token'));
+        console.log('User:', localStorage.getItem('user'));
 
-        const queryParams = new URLSearchParams({
-            startDate: startDate || '',
-            endDate: endDate || ''
-        });
-
-        const response = await fetch(`/api/posts/all?${queryParams}`, {
+        const response = await fetch('/api/posts/all', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
 
+        console.log('Response status:', response.status);
         const data = await response.json();
-        
+        console.log('Response data:', data);
+
         if (!response.ok) {
             throw new Error(data.message || 'Failed to fetch posts');
         }

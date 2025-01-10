@@ -1,5 +1,6 @@
 const { Post, User, Category } = require('../models');
 const { v4: uuidv4 } = require('uuid');
+const { Op } = require('sequelize');
 
 exports.createPost = async (req, res) => {
     try {
@@ -65,29 +66,29 @@ exports.createPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
     try {
-        console.log('Fetching all posts'); // Debug log
-        console.log('User:', req.user); // Debug log
+        console.log('Getting all posts');
+        console.log('User:', req.user.id, req.user.isAdmin);
+        console.log('Query params:', req.query);
 
-        // Check if user is admin
+        let whereClause = {};
+        
+        // If not admin, only show user's posts
         if (!req.user.isAdmin) {
-            return res.status(403).json({
-                status: 'error',
-                message: 'Access denied. Admin privileges required.'
-            });
+            whereClause.userId = req.user.id;
         }
 
-        const { startDate, endDate } = req.query;
-        
-        // Build query conditions
-        const whereConditions = {};
-        if (startDate && endDate) {
-            whereConditions.createdAt = {
-                [Op.between]: [new Date(startDate), new Date(endDate)]
+        // Date filtering
+        if (req.query.startDate && req.query.endDate) {
+            whereClause.createdAt = {
+                [Op.between]: [
+                    new Date(req.query.startDate),
+                    new Date(req.query.endDate)
+                ]
             };
         }
 
         const posts = await Post.findAll({
-            where: whereConditions,
+            where: whereClause,
             include: [
                 {
                     model: User,
@@ -102,7 +103,7 @@ exports.getAllPosts = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
-        console.log('Found posts:', posts.length); // Debug log
+        console.log(`Found ${posts.length} posts`);
 
         res.json({
             status: 'success',
@@ -110,7 +111,7 @@ exports.getAllPosts = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error fetching all posts:', error); // Debug log
+        console.error('Error in getAllPosts:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error fetching posts',

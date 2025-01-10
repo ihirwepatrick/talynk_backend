@@ -12,12 +12,14 @@ exports.authenticate = async (req, res, next) => {
             });
         }
 
-        // Verify token
         const token = authHeader.split(' ')[1];
+
+        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-default-secret-key');
 
         // Get user from database
         const user = await User.findByPk(decoded.id);
+
         if (!user) {
             return res.status(401).json({
                 status: 'error',
@@ -25,34 +27,15 @@ exports.authenticate = async (req, res, next) => {
             });
         }
 
-        // Add user to request object
+        // Attach user to request
         req.user = user;
-        
-        // Log authentication success
-        console.log('Authentication successful for user:', user.id);
-
         next();
+
     } catch (error) {
         console.error('Authentication error:', error);
-        
-        if (error.name === 'JsonWebTokenError') {
-            return res.status(401).json({
-                status: 'error',
-                message: 'Invalid token'
-            });
-        }
-
-        if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({
-                status: 'error',
-                message: 'Token expired'
-            });
-        }
-
         res.status(401).json({
             status: 'error',
-            message: 'Authentication failed',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Invalid token'
         });
     }
 };

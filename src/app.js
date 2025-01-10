@@ -5,6 +5,10 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const { sequelize } = require('./models');
 const path = require('path');
+const authRoutes = require('./routes/auth');
+const postRoutes = require('./routes/post');
+const categoryRoutes = require('./routes/category');
+const userRoutes = require('./routes/user');
 
 const app = express();
 
@@ -26,9 +30,24 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use(express.static('public'));
 
-// Routes
-const routes = require('./routes');
-app.use('/api', routes);
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/users', userRoutes);
+
+// Serve HTML files
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/test.html'));
+});
+
+app.get('/posts.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/posts.html'));
+});
+
+app.get('/admin-dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin-dashboard.html'));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
