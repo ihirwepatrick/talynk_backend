@@ -1,10 +1,12 @@
-const { Post, Category, User } = require('../models');
-const path = require('path');
+const { Post, User, Category } = require('../models');
+const { v4: uuidv4 } = require('uuid');
 
 exports.createPost = async (req, res) => {
     try {
-        console.log('Request body:', req.body);
-        console.log('Request file:', req.file);
+        console.log('Creating post with data:', req.body); // Debug log
+        console.log('File:', req.file); // Debug log
+        
+        const { title, caption, categoryId } = req.body;
 
         if (!req.file) {
             return res.status(400).json({
@@ -13,35 +15,22 @@ exports.createPost = async (req, res) => {
             });
         }
 
-        const { title, caption, categoryId } = req.body;
-
-        // Validate required fields
-        if (!title || !categoryId) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Title and category are required'
-            });
-        }
-
         // Determine media type
         const mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
         
-        // Create relative path for media URL
-        const mediaUrl = path.join('uploads', 
-            mediaType === 'video' ? 'videos' : 'images',
-            req.file.filename
-        ).replace(/\\/g, '/'); // Convert Windows backslashes to forward slashes
-
         // Create post
         const post = await Post.create({
+            publicId: uuidv4(),
             title,
             caption,
-            categoryId,
-            mediaUrl,
+            mediaUrl: req.file.path,
             mediaType,
-            userId: req.user.id, // From auth middleware
-            status: 'pending'
+            status: 'pending', // Default status
+            userId: req.user.id,
+            categoryId
         });
+
+        console.log('Post created:', post); // Debug log
 
         // Fetch the created post with associations
         const createdPost = await Post.findByPk(post.id, {
@@ -65,7 +54,7 @@ exports.createPost = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Post creation error:', error);
+        console.error('Error creating post:', error); // Debug log
         res.status(500).json({
             status: 'error',
             message: 'Error creating post',
@@ -76,6 +65,9 @@ exports.createPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
     try {
+        console.log('Fetching all posts'); // Debug log
+        console.log('User:', req.user); // Debug log
+
         // Check if user is admin
         if (!req.user.isAdmin) {
             return res.status(403).json({
@@ -84,7 +76,18 @@ exports.getAllPosts = async (req, res) => {
             });
         }
 
+        const { startDate, endDate } = req.query;
+        
+        // Build query conditions
+        const whereConditions = {};
+        if (startDate && endDate) {
+            whereConditions.createdAt = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        }
+
         const posts = await Post.findAll({
+            where: whereConditions,
             include: [
                 {
                     model: User,
@@ -107,7 +110,7 @@ exports.getAllPosts = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error fetching all posts:', error);
+        console.error('Error fetching all posts:', error); // Debug log
         res.status(500).json({
             status: 'error',
             message: 'Error fetching posts',
@@ -179,16 +182,10 @@ exports.getPendingPosts = async (req, res) => {
 
 exports.updatePostStatus = async (req, res) => {
     try {
-        // Check if user is admin
-        if (!req.user.isAdmin) {
-            return res.status(403).json({
-                status: 'error',
-                message: 'Access denied. Admin privileges required.'
-            });
-        }
+        console.log('Updating post status:', req.params.id, req.body); // Debug log
 
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, rejectionReason } = req.body;
 
         if (!['pending', 'approved', 'rejected'].includes(status)) {
             return res.status(400).json({
@@ -206,16 +203,38 @@ exports.updatePostStatus = async (req, res) => {
             });
         }
 
-        await post.update({ status });
+        const updateData = { status };
+        if (status === 'rejected' && rejectionReason) {
+            updateData.rejectionReason = rejectionReason;
+        }
+
+        await post.update(updateData);
+
+        // Fetch updated post with associations
+        const updatedPost = await Post.findByPk(id, {
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ]
+        });
+
+        console.log('Post updated:', updatedPost); // Debug log
 
         res.json({
             status: 'success',
             message: 'Post status updated successfully',
-            data: post
+            data: updatedPost
         });
 
     } catch (error) {
-        console.error('Error updating post status:', error);
+        console.error('Error updating post status:', error); // Debug log
         res.status(500).json({
             status: 'error',
             message: 'Error updating post status',

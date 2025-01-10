@@ -47,15 +47,28 @@ const faceFilter = (req, file, cb) => {
     }
 };
 
-// File filter for media
+// File filter for media uploads
 const mediaFilter = (req, file, cb) => {
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
+    // Updated allowed file types
+    const allowedImageTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp'
+    ];
+    
+    const allowedVideoTypes = [
+        'video/mp4',
+        'video/quicktime',
+        'video/x-msvideo',
+        'video/webm',  // Added WebM support
+        'video/ogg'    // Added OGG support
+    ];
     
     if (allowedImageTypes.includes(file.mimetype) || allowedVideoTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only images and videos are allowed.'), false);
+        cb(new Error('Invalid file type. Allowed types: JPG, PNG, GIF, WEBP, MP4, MOV, AVI, WEBM, OGG'), false);
     }
 };
 

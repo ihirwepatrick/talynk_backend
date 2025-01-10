@@ -1,3 +1,13 @@
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #34495e;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -5,23 +15,28 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
-    background-color: #f4f4f4;
+    background-color: #f5f6fa;
+    color: var(--dark-color);
 }
 
 .navbar {
-    background-color: #333;
+    background-color: var(--primary-color);
     color: white;
-    padding: 1rem;
+    padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .nav-brand {
     font-size: 1.5rem;
     font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .nav-links {
@@ -34,23 +49,54 @@ body {
     text-decoration: none;
     padding: 0.5rem 1rem;
     border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.3s;
 }
 
 .nav-links a:hover,
 .nav-links a.active {
-    background-color: #555;
+    background-color: var(--secondary-color);
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 2rem auto;
-    padding: 0 1rem;
+    padding: 0 2rem;
 }
 
-.dashboard-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+.date-filter {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.filter-inputs {
+    display: flex;
     gap: 1rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-group input {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
@@ -59,33 +105,59 @@ body {
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
-.stat-card h3 {
+.stat-card i {
+    font-size: 2rem;
+}
+
+.stat-card.total i { color: var(--primary-color); }
+.stat-card.pending i { color: var(--warning-color); }
+.stat-card.approved i { color: var(--success-color); }
+.stat-card.rejected i { color: var(--danger-color); }
+
+.stat-content h3 {
+    font-size: 1rem;
     color: #666;
-    margin-bottom: 0.5rem;
 }
 
-.stat-card p {
+.stat-content p {
     font-size: 2rem;
     font-weight: bold;
-    color: #333;
+    color: var(--dark-color);
 }
 
-.posts-section {
-    margin-top: 2rem;
+.posts-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
-.posts-section h2 {
-    margin: 2rem 0 1rem;
-    color: #333;
+.tab-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.tab-btn.active {
+    background-color: var(--primary-color);
+    color: white;
 }
 
 .posts-grid {
-    display: grid;
+    display: none;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
+    gap: 1.5rem;
+}
+
+.posts-grid.active {
+    display: grid;
 }
 
 .post-card {
@@ -93,6 +165,11 @@ body {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.post-card:hover {
+    transform: translateY(-5px);
 }
 
 .post-media {
@@ -102,10 +179,11 @@ body {
 }
 
 .post-content {
-    padding: 1rem;
+    padding: 1.5rem;
 }
 
 .post-title {
+    font-size: 1.2rem;
     font-weight: bold;
     margin-bottom: 0.5rem;
 }
@@ -113,50 +191,79 @@ body {
 .post-meta {
     color: #666;
     font-size: 0.9rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
 }
 
-.approval-buttons {
+.post-actions {
     display: flex;
     gap: 0.5rem;
-    margin-top: 1rem;
 }
 
-.approve-btn,
-.reject-btn {
+.action-btn {
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    color: white;
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.3s;
 }
 
 .approve-btn {
-    background-color: #28a745;
+    background-color: var(--success-color);
+    color: white;
 }
 
 .reject-btn {
-    background-color: #dc3545;
-}
-
-.approve-btn:hover {
-    background-color: #218838;
-}
-
-.reject-btn:hover {
-    background-color: #c82333;
-}
-
-#logout-btn {
-    background-color: #dc3545;
+    background-color: var(--danger-color);
     color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    font-size: 1.5rem;
     cursor: pointer;
 }
 
-#logout-btn:hover {
-    background-color: #c82333;
+#rejection-reason {
+    width: 100%;
+    height: 100px;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+.reject-confirm-btn {
+    background-color: var(--danger-color);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 1rem;
 } 

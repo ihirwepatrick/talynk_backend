@@ -4,55 +4,118 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Talynk Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/css/admin-dashboard.css">
 </head>
 <body>
     <nav class="navbar">
-        <div class="nav-brand">Talynk Admin</div>
+        <div class="nav-brand">
+            <i class="fas fa-shield-alt"></i>
+            Talynk Admin
+        </div>
         <div class="nav-links">
-            <a href="/admin-dashboard.html" class="active">Dashboard</a>
-            <a href="/posts.html">View All Posts</a>
+            <a href="/admin-dashboard.html" class="active">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </a>
+            <a href="/posts.html">
+                <i class="fas fa-images"></i> View All Posts
+            </a>
         </div>
         <div class="nav-user">
             <span id="username-display"></span>
-            <button id="logout-btn">Logout</button>
+            <button id="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
         </div>
     </nav>
 
     <div class="container">
-        <div class="dashboard-stats">
-            <div class="stat-card">
-                <h3>Pending Posts</h3>
-                <p id="pending-count">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Approved Posts</h3>
-                <p id="approved-count">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Rejected Posts</h3>
-                <p id="rejected-count">0</p>
+        <!-- Date Range Filter -->
+        <div class="date-filter">
+            <h3>Filter by Date Range</h3>
+            <div class="filter-inputs">
+                <div class="input-group">
+                    <label for="start-date">From:</label>
+                    <input type="date" id="start-date">
+                </div>
+                <div class="input-group">
+                    <label for="end-date">To:</label>
+                    <input type="date" id="end-date">
+                </div>
+                <button id="apply-filter">Apply Filter</button>
+                <button id="reset-filter">Reset</button>
             </div>
         </div>
 
-        <div class="posts-section">
-            <h2>Pending Posts</h2>
-            <div id="pending-posts" class="posts-grid">
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <div class="stat-content">
+                    <h3>Total Posts</h3>
+                    <p id="total-count">0</p>
+                </div>
+            </div>
+            <div class="stat-card pending">
+                <i class="fas fa-clock"></i>
+                <div class="stat-content">
+                    <h3>Pending Posts</h3>
+                    <p id="pending-count">0</p>
+                </div>
+            </div>
+            <div class="stat-card approved">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-content">
+                    <h3>Approved Posts</h3>
+                    <p id="approved-count">0</p>
+                </div>
+            </div>
+            <div class="stat-card rejected">
+                <i class="fas fa-times-circle"></i>
+                <div class="stat-content">
+                    <h3>Rejected Posts</h3>
+                    <p id="rejected-count">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Posts Sections -->
+        <div class="posts-tabs">
+            <button class="tab-btn active" data-tab="pending">Pending Posts</button>
+            <button class="tab-btn" data-tab="approved">Approved Posts</button>
+            <button class="tab-btn" data-tab="rejected">Rejected Posts</button>
+        </div>
+
+        <div class="posts-container">
+            <div id="pending-posts" class="posts-grid active">
                 <!-- Pending posts will be loaded here -->
             </div>
-
-            <h2>Approved Posts</h2>
             <div id="approved-posts" class="posts-grid">
                 <!-- Approved posts will be loaded here -->
             </div>
-
-            <h2>Rejected Posts</h2>
             <div id="rejected-posts" class="posts-grid">
                 <!-- Rejected posts will be loaded here -->
             </div>
         </div>
     </div>
 
+    <!-- Rejection Modal -->
+    <div id="rejection-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Reject Post</h2>
+            <form id="rejection-form">
+                <input type="hidden" id="reject-post-id">
+                <div class="form-group">
+                    <label for="rejection-reason">Reason for Rejection:</label>
+                    <textarea id="rejection-reason" required></textarea>
+                </div>
+                <button type="submit" class="reject-confirm-btn">Submit Rejection</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/admin-dashboard.js"></script>
 </body>
 </html> 

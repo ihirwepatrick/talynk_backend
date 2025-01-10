@@ -1,20 +1,29 @@
 'use strict';
-const { v4: uuidv4 } = require('uuid');
+const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  const Post = sequelize.define('Post', {
+  class Post extends Model {
+    static associate(models) {
+      Post.belongsTo(models.User, {
+        foreignKey: 'userId',
+        as: 'author'
+      });
+      Post.belongsTo(models.Category, {
+        foreignKey: 'categoryId',
+        as: 'category'
+      });
+    }
+  }
+  
+  Post.init({
     publicId: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
-      defaultValue: () => uuidv4()
+      unique: true
     },
     title: {
       type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: true
-      }
+      allowNull: false
     },
     caption: {
       type: DataTypes.TEXT,
@@ -32,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('pending', 'approved', 'rejected'),
       defaultValue: 'pending'
     },
+    rejectionReason: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false
@@ -40,18 +53,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     }
-  }, {});
-
-  Post.associate = function(models) {
-    Post.belongsTo(models.User, {
-      foreignKey: 'userId',
-      as: 'author'
-    });
-    Post.belongsTo(models.Category, {
-      foreignKey: 'categoryId',
-      as: 'category'
-    });
-  };
-
+  }, {
+    sequelize,
+    modelName: 'Post',
+  });
+  
   return Post;
 };
