@@ -22,6 +22,10 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true
       },
+      description: {
+        type: Sequelize.TEXT,
+        allowNull: true
+      },
       mediaUrl: {
         type: Sequelize.STRING,
         allowNull: false
@@ -32,7 +36,8 @@ module.exports = {
       },
       status: {
         type: Sequelize.ENUM('pending', 'approved', 'rejected'),
-        defaultValue: 'pending'
+        defaultValue: 'pending',
+        allowNull: false
       },
       rejectionReason: {
         type: Sequelize.TEXT,
