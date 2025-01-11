@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Talynk</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/user-dashboard.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-user-circle"></i>
+            Talynk User Dashboard
+        </div>
+        <div class="nav-links">
+            <span id="username-display"></span>
+            <button id="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="posts-tabs">
+            <button class="tab-btn active" data-tab="pending">Pending Posts</button>
+            <button class="tab-btn" data-tab="all">All My Posts</button>
+        </div>
+
+        <div class="posts-container">
+            <div id="pending-posts" class="posts-grid active"></div>
+            <div id="all-posts" class="posts-grid"></div>
+        </div>
+    </div>
+
+    <script src="/js/user-dashboard.js"></script>
+</body>
+</html> 

@@ -83,24 +83,25 @@ exports.createPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
     try {
-        console.log('Getting all posts - User ID:', req.user.id);
-        console.log('Is Admin:', req.user.isAdmin);
+        // Ensure user is admin
+        if (!req.user.isAdmin) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Access denied'
+            });
+        }
 
-        // Build the query with specific attributes to exclude rejectionReason
-        const queryOptions = {
-            attributes: [
-                'id', 
-                'publicId', 
-                'title', 
-                'caption', 
-                'mediaUrl', 
-                'mediaType', 
-                'status', 
-                'userId', 
-                'categoryId', 
-                'createdAt', 
-                'updatedAt'
-            ],
+        const { startDate, endDate } = req.query;
+        
+        let whereClause = {};
+        if (startDate && endDate) {
+            whereClause.createdAt = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        }
+
+        const posts = await Post.findAll({
+            where: whereClause,
             include: [
                 {
                     model: User,
@@ -113,25 +114,19 @@ exports.getAllPosts = async (req, res) => {
                 }
             ],
             order: [['createdAt', 'DESC']]
-        };
-
-        console.log('Query options:', JSON.stringify(queryOptions, null, 2));
-
-        const posts = await Post.findAll(queryOptions);
-
-        console.log(`Found ${posts.length} posts`);
-        posts.forEach(post => {
-            console.log('Post:', {
-                id: post.id,
-                title: post.title,
-                status: post.status,
-                userId: post.userId,
-                mediaUrl: post.mediaUrl
-            });
         });
+
+        // Get statistics
+        const stats = {
+            total: posts.length,
+            pending: posts.filter(p => p.status === 'pending').length,
+            approved: posts.filter(p => p.status === 'approved').length,
+            rejected: posts.filter(p => p.status === 'rejected').length
+        };
 
         res.json({
             status: 'success',
+            stats,
             data: posts
         });
 
@@ -139,8 +134,7 @@ exports.getAllPosts = async (req, res) => {
         console.error('Error in getAllPosts:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error fetching posts',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Error fetching posts'
         });
     }
 };
@@ -265,6 +259,77 @@ exports.updatePostStatus = async (req, res) => {
             status: 'error',
             message: 'Error updating post status',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+exports.getUserPendingPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: {
+                userId: req.user.id,
+                status: 'pending'
+            },
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        console.log(`Found ${posts.length} pending posts for user ${req.user.id}`);
+
+        res.json({
+            status: 'success',
+            data: posts
+        });
+
+    } catch (error) {
+        console.error('Error fetching user pending posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching pending posts'
+        });
+    }
+};
+
+exports.getUserPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: {
+                userId: req.user.id
+            },
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            status: 'success',
+            data: posts
+        });
+
+    } catch (error) {
+        console.error('Error fetching user posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching posts'
         });
     }
 }; 
