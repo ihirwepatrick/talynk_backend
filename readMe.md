@@ -31,7 +31,7 @@ Welcome to the **Talynk Backend** repository! This project powers the backend se
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/talynk.git
+git clone https://github.com/ihirwepatrick/talynk.git
 cd talynk
 ```
 
