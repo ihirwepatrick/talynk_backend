@@ -107,15 +107,38 @@
             <form id="rejection-form">
                 <input type="hidden" id="reject-post-id">
                 <div class="form-group">
-                    <label for="rejection-reason">Reason for Rejection:</label>
-                    <textarea id="rejection-reason" required></textarea>
+                    <label for="rejection-reason">Reason for Rejection (Required):</label>
+                    <textarea id="rejection-reason" required minlength="10" 
+                        placeholder="Please provide a detailed reason for rejection (minimum 10 characters)"></textarea>
                 </div>
-                <button type="submit" class="reject-confirm-btn">Submit Rejection</button>
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" onclick="closeRejectionModal()">Cancel</button>
+                    <button type="submit" class="reject-confirm-btn">Submit Rejection</button>
+                </div>
             </form>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/admin-dashboard.js"></script>
+    <!-- Add this inside the body tag, before the closing </body> -->
+<div id="rejection-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Reject Post</h2>
+        <form id="rejection-form">
+            <input type="hidden" id="reject-post-id">
+            <div class="form-group">
+                <label for="rejection-reason">Reason for Rejection (Required):</label>
+                <textarea id="rejection-reason" required minlength="10" 
+                    placeholder="Please provide a detailed reason for rejection (minimum 10 characters)"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="cancel-btn" onclick="closeRejectionModal()">Cancel</button>
+                <button type="submit" class="reject-confirm-btn">Submit Rejection</button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html> 

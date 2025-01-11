@@ -130,9 +130,23 @@ function createPostCard(post) {
     const div = document.createElement('div');
     div.className = 'post-card';
     
-    const mediaElement = post.mediaType === 'video'
-        ? `<video src="${post.mediaUrl}" class="post-media" controls></video>`
-        : `<img src="${post.mediaUrl}" class="post-media" alt="${post.title}">`;
+    let mediaElement = '';
+    let videoWatched = false;
+    
+    if (post.mediaType === 'video') {
+        mediaElement = `
+            <div class="video-container">
+                <video id="video-${post.id}" class="post-media" controls>
+                    <source src="${post.mediaUrl}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-overlay" id="overlay-${post.id}">
+                    <span>Please watch at least 1 minute before taking action</span>
+                </div>
+            </div>`;
+    } else {
+        mediaElement = `<img src="${post.mediaUrl}" class="post-media" alt="${post.title}">`;
+    }
         
     div.innerHTML = `
         ${mediaElement}
@@ -145,26 +159,81 @@ function createPostCard(post) {
                 ${post.rejectionReason ? `<div class="rejection-reason">Rejection Reason: ${post.rejectionReason}</div>` : ''}
             </div>
             ${post.status === 'pending' ? `
-                <div class="post-actions">
-                    <button class="action-btn approve-btn" onclick="updatePostStatus(${post.id}, 'approved')">
+                <div class="post-actions" id="actions-${post.id}">
+                    <button class="action-btn approve-btn" disabled onclick="handleApprove(${post.id})">
                         <i class="fas fa-check"></i> Approve
                     </button>
-                    <button class="action-btn reject-btn" onclick="showRejectionModal(${post.id})">
+                    <button class="action-btn reject-btn" disabled onclick="showRejectionModal(${post.id})">
                         <i class="fas fa-times"></i> Reject
                     </button>
                 </div>
             ` : ''}
         </div>
     `;
+
+    // Add video event listeners if it's a video
+    if (post.mediaType === 'video') {
+        setTimeout(() => {
+            const video = div.querySelector(`#video-${post.id}`);
+            const overlay = div.querySelector(`#overlay-${post.id}`);
+            const actions = div.querySelector(`#actions-${post.id}`);
+            
+            if (video && actions) {
+                let watchTime = 0;
+                
+                video.addEventListener('timeupdate', () => {
+                    watchTime = video.currentTime;
+                    if (watchTime >= 60 && !videoWatched) { // 60 seconds = 1 minute
+                        videoWatched = true;
+                        overlay.style.display = 'none';
+                        const buttons = actions.querySelectorAll('button');
+                        buttons.forEach(btn => btn.disabled = false);
+                    }
+                });
+            }
+        }, 0);
+    } else {
+        // For images, enable buttons immediately
+        const actions = div.querySelector(`#actions-${post.id}`);
+        if (actions) {
+            const buttons = actions.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = false);
+        }
+    }
     
     return div;
 }
 
-// Show Rejection Modal
+async function handleApprove(postId) {
+    try {
+        const response = await fetch(`/api/posts/${postId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                status: 'approved'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to approve post');
+        }
+
+        alert('Post approved successfully');
+        loadDashboardData(); // Refresh the dashboard
+    } catch (error) {
+        console.error('Error approving post:', error);
+        alert('Error approving post: ' + error.message);
+    }
+}
+
 function showRejectionModal(postId) {
+    const modal = document.getElementById('rejection-modal');
     document.getElementById('reject-post-id').value = postId;
     document.getElementById('rejection-reason').value = '';
-    document.getElementById('rejection-modal').style.display = 'block';
+    modal.style.display = 'block';
 }
 
 // Update Post Status
@@ -199,4 +268,33 @@ async function updatePostStatus(postId, status, rejectionReason = null) {
 document.getElementById('logout-btn').addEventListener('click', () => {
     localStorage.clear();
     window.location.href = '/test.html';
-}); 
+});
+
+// Add CSS for video overlay and disabled buttons
+const style = document.createElement('style');
+style.textContent = `
+    .video-container {
+        position: relative;
+    }
+
+    .video-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+document.head.appendChild(style); 

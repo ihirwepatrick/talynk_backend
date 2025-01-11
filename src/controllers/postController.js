@@ -4,34 +4,49 @@ const { Op } = require('sequelize');
 
 exports.createPost = async (req, res) => {
     try {
-        console.log('Creating post with data:', req.body); // Debug log
-        console.log('File:', req.file); // Debug log
-        
+        console.log('=== Creating Post ===');
+        console.log('User:', req.user.id);
+        console.log('Request body:', req.body);
+        console.log('File:', req.file);
+
         const { title, caption, categoryId } = req.body;
 
+        // Validate required fields
+        if (!title || !categoryId) {
+            console.log('Missing required fields');
+            return res.status(400).json({
+                status: 'error',
+                message: 'Title and category are required'
+            });
+        }
+
         if (!req.file) {
+            console.log('No media file provided');
             return res.status(400).json({
                 status: 'error',
                 message: 'Media file is required'
             });
         }
 
-        // Determine media type
-        const mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
-        
-        // Create post
+        // Create the post
         const post = await Post.create({
             publicId: uuidv4(),
             title,
             caption,
-            mediaUrl: req.file.path,
-            mediaType,
-            status: 'pending', // Default status
+            mediaUrl: req.file.path.replace(/\\/g, '/'), // Normalize path for Windows
+            mediaType: req.file.mimetype.startsWith('video/') ? 'video' : 'image',
+            status: 'pending',
             userId: req.user.id,
-            categoryId
+            categoryId: parseInt(categoryId)
         });
 
-        console.log('Post created:', post); // Debug log
+        console.log('Post created successfully:', {
+            id: post.id,
+            title: post.title,
+            mediaUrl: post.mediaUrl,
+            userId: post.userId,
+            categoryId: post.categoryId
+        });
 
         // Fetch the created post with associations
         const createdPost = await Post.findByPk(post.id, {
@@ -48,6 +63,8 @@ exports.createPost = async (req, res) => {
             ]
         });
 
+        console.log('Fetched created post with associations:', createdPost);
+
         res.status(201).json({
             status: 'success',
             message: 'Post created successfully',
@@ -55,7 +72,7 @@ exports.createPost = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error creating post:', error); // Debug log
+        console.error('Error creating post:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error creating post',
@@ -66,29 +83,24 @@ exports.createPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
     try {
-        console.log('Getting all posts');
-        console.log('User:', req.user.id, req.user.isAdmin);
-        console.log('Query params:', req.query);
+        console.log('Getting all posts - User ID:', req.user.id);
+        console.log('Is Admin:', req.user.isAdmin);
 
-        let whereClause = {};
-        
-        // If not admin, only show user's posts
-        if (!req.user.isAdmin) {
-            whereClause.userId = req.user.id;
-        }
-
-        // Date filtering
-        if (req.query.startDate && req.query.endDate) {
-            whereClause.createdAt = {
-                [Op.between]: [
-                    new Date(req.query.startDate),
-                    new Date(req.query.endDate)
-                ]
-            };
-        }
-
-        const posts = await Post.findAll({
-            where: whereClause,
+        // Build the query with specific attributes to exclude rejectionReason
+        const queryOptions = {
+            attributes: [
+                'id', 
+                'publicId', 
+                'title', 
+                'caption', 
+                'mediaUrl', 
+                'mediaType', 
+                'status', 
+                'userId', 
+                'categoryId', 
+                'createdAt', 
+                'updatedAt'
+            ],
             include: [
                 {
                     model: User,
@@ -101,9 +113,22 @@ exports.getAllPosts = async (req, res) => {
                 }
             ],
             order: [['createdAt', 'DESC']]
-        });
+        };
+
+        console.log('Query options:', JSON.stringify(queryOptions, null, 2));
+
+        const posts = await Post.findAll(queryOptions);
 
         console.log(`Found ${posts.length} posts`);
+        posts.forEach(post => {
+            console.log('Post:', {
+                id: post.id,
+                title: post.title,
+                status: post.status,
+                userId: post.userId,
+                mediaUrl: post.mediaUrl
+            });
+        });
 
         res.json({
             status: 'success',
