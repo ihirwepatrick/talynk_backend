@@ -31,6 +31,15 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use(express.static('public'));
 
+// Set security headers middleware
+app.use((req, res, next) => {
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; style-src 'self' 'unsafe-inline'"
+    );
+    next();
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
@@ -52,10 +61,10 @@ app.get('/admin-dashboard.html', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error details:', err);
+  console.error(err.stack);
   res.status(500).json({
     status: 'error',
-    message: 'Something went wrong!',
+    message: 'Something broke!',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });

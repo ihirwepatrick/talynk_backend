@@ -3,45 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
     <title>Talynk Admin Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/css/admin-dashboard.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-brand">
-            <i class="fas fa-shield-alt"></i>
-            Talynk Admin
+            🛡️ Talynk Admin
         </div>
         <div class="nav-user">
             <span id="username-display"></span>
             <button id="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Logout
+                🚪 Logout
             </button>
         </div>
     </nav>
 
     <div class="container">
-        <!-- Statistics Cards -->
         <div class="stats-container">
             <div class="stat-card">
-                <i class="fas fa-list"></i>
+                📊 
                 <h3>Total Posts</h3>
                 <span id="total-count">0</span>
             </div>
             <div class="stat-card pending">
-                <i class="fas fa-clock"></i>
+                ⏳ 
                 <h3>Pending</h3>
                 <span id="pending-count">0</span>
             </div>
             <div class="stat-card approved">
-                <i class="fas fa-check"></i>
+                ✅ 
                 <h3>Approved</h3>
                 <span id="approved-count">0</span>
             </div>
             <div class="stat-card rejected">
-                <i class="fas fa-times"></i>
+                ❌ 
                 <h3>Rejected</h3>
                 <span id="rejected-count">0</span>
             </div>

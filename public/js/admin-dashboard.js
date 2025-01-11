@@ -124,7 +124,7 @@ function createPostCard(post) {
                 </video>
                 ${post.status === 'pending' ? `
                     <div class="video-overlay" id="overlay-${post.id}">
-                        <span>Please watch at least 1 minute before taking action</span>
+                        ⏱️ Please watch at least 1 minute before taking action
                     </div>
                 ` : ''}
             </div>`;
@@ -137,39 +137,34 @@ function createPostCard(post) {
         <div class="post-content">
             <div class="post-header">
                 <div class="post-title">${post.title}</div>
-                <div class="post-id">ID: ${post.id}</div>
+                <div class="post-id">🆔 ${post.id}</div>
             </div>
             <div class="post-meta">
                 <div class="user-info">
-                    <i class="fas fa-user"></i> 
-                    Posted by: ${post.author ? post.author.username : 'Unknown'}
+                    👤 Posted by: ${post.author ? post.author.username : 'Unknown'}
                 </div>
                 <div class="category-info">
-                    <i class="fas fa-folder"></i>
-                    Category: ${post.category ? post.category.name : 'Uncategorized'}
+                    📁 Category: ${post.category ? post.category.name : 'Uncategorized'}
                 </div>
                 <div class="date-info">
-                    <i class="fas fa-calendar"></i>
-                    Posted: ${new Date(post.createdAt).toLocaleDateString()}
+                    📅 Posted: ${new Date(post.createdAt).toLocaleDateString()}
                 </div>
                 <div class="status-info status-${post.status}">
-                    <i class="fas fa-info-circle"></i>
-                    Status: ${post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+                    ℹ️ Status: ${post.status.charAt(0).toUpperCase() + post.status.slice(1)}
                 </div>
                 ${post.rejectionReason ? `
                     <div class="rejection-reason">
-                        <i class="fas fa-exclamation-circle"></i>
-                        Rejection Reason: ${post.rejectionReason}
+                        ⚠️ Rejection Reason: ${post.rejectionReason}
                     </div>
                 ` : ''}
             </div>
             ${post.status === 'pending' ? `
                 <div class="post-actions" id="actions-${post.id}">
                     <button class="action-btn approve-btn" data-action="approve" data-post-id="${post.id}" disabled>
-                        <i class="fas fa-check"></i> Approve
+                        ✅ Approve
                     </button>
                     <button class="action-btn reject-btn" data-action="reject" data-post-id="${post.id}" disabled>
-                        <i class="fas fa-times"></i> Reject
+                        ❌ Reject
                     </button>
                 </div>
             ` : ''}
@@ -178,8 +173,8 @@ function createPostCard(post) {
 
     // Add event listeners after creating the element
     if (post.status === 'pending') {
-        const approveBtn = div.querySelector('.approve-btn');
-        const rejectBtn = div.querySelector('.reject-btn');
+        const approveBtn = div.querySelector('[data-action="approve"]');
+        const rejectBtn = div.querySelector('[data-action="reject"]');
         
         if (approveBtn) {
             approveBtn.addEventListener('click', () => handleApprove(post.id));
@@ -189,36 +184,6 @@ function createPostCard(post) {
         }
     }
 
-    // Add video event listeners if it's a video and pending
-    if (post.mediaType === 'video' && post.status === 'pending') {
-        setTimeout(() => {
-            const video = div.querySelector(`#video-${post.id}`);
-            const overlay = div.querySelector(`#overlay-${post.id}`);
-            const actions = div.querySelector(`#actions-${post.id}`);
-            
-            if (video && actions) {
-                let watchTime = 0;
-                
-                video.addEventListener('timeupdate', () => {
-                    watchTime = video.currentTime;
-                    if (watchTime >= 60 && !videoWatched) {
-                        videoWatched = true;
-                        if (overlay) overlay.style.display = 'none';
-                        const buttons = actions.querySelectorAll('button');
-                        buttons.forEach(btn => btn.disabled = false);
-                    }
-                });
-            }
-        }, 0);
-    } else if (post.status === 'pending') {
-        // For images, enable buttons immediately
-        const actions = div.querySelector(`#actions-${post.id}`);
-        if (actions) {
-            const buttons = actions.querySelectorAll('button');
-            buttons.forEach(btn => btn.disabled = false);
-        }
-    }
-    
     return div;
 }
 

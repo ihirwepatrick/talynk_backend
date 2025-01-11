@@ -4,17 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
-    <title>Talynk - User Dashboard</title>
+    <title>Talynk - Home Feed</title>
     <link rel="stylesheet" href="/assets/fonts/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="/css/user-dashboard.css">
+    <link rel="stylesheet" href="/css/home.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-brand">
-            <i class="fas fa-user-circle"></i>
-            Talynk User Dashboard
+            <i class="fas fa-home"></i>
+            Talynk Feed
         </div>
         <div class="nav-links">
+            <a href="/home.html" class="active">
+                <i class="fas fa-home"></i> Home
+            </a>
+            <a href="/user-dashboard.html">
+                <i class="fas fa-user"></i> My Profile
+            </a>
             <span id="username-display"></span>
             <button id="logout-btn">
                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -23,17 +29,11 @@
     </nav>
 
     <div class="container">
-        <div class="posts-tabs">
-            <button class="tab-btn active" data-tab="pending">Pending Posts</button>
-            <button class="tab-btn" data-tab="all">All My Posts</button>
-        </div>
-
-        <div class="posts-container">
-            <div id="pending-posts" class="posts-grid active"></div>
-            <div id="all-posts" class="posts-grid"></div>
+        <div class="feed-container">
+            <div id="posts-feed" class="posts-grid"></div>
         </div>
     </div>
 
-    <script src="/js/user-dashboard.js"></script>
+    <script src="/js/home.js"></script>
 </body>
 </html> 

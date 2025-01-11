@@ -332,4 +332,66 @@ exports.getUserPosts = async (req, res) => {
             message: 'Error fetching posts'
         });
     }
+};
+
+exports.getApprovedPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: { status: 'approved' },
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            status: 'success',
+            data: posts
+        });
+    } catch (error) {
+        console.error('Error fetching approved posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching posts'
+        });
+    }
+};
+
+exports.deletePost = async (req, res) => {
+    try {
+        const post = await Post.findOne({
+            where: {
+                id: req.params.id,
+                userId: req.user.id
+            }
+        });
+
+        if (!post) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Post not found or unauthorized'
+            });
+        }
+
+        await post.destroy();
+
+        res.json({
+            status: 'success',
+            message: 'Post deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error deleting post'
+        });
+    }
 }; 

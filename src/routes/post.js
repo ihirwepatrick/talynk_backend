@@ -13,4 +13,8 @@ router.post('/', authenticate, uploadMedia, postController.createPost);
 router.get('/user/pending', authenticate, postController.getUserPendingPosts);
 router.get('/user/all', authenticate, postController.getUserPosts);
 
+// Add these routes
+router.get('/approved', authenticate, postController.getApprovedPosts);
+router.delete('/:id', authenticate, postController.deletePost);
+
 module.exports = router; 

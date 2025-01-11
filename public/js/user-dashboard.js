@@ -98,27 +98,100 @@ function createPostCard(post) {
     div.className = 'post-card';
     
     const mediaElement = post.mediaType === 'video'
-        ? `<video src="${post.mediaUrl}" class="post-media" controls></video>`
+        ? `<video class="post-media" controls><source src="${post.mediaUrl}" type="video/mp4"></video>`
         : `<img src="${post.mediaUrl}" class="post-media" alt="${post.title}">`;
-        
+
     div.innerHTML = `
         ${mediaElement}
         <div class="post-content">
-            <div class="post-title">${post.title}</div>
+            <div class="post-header">
+                <div class="post-title">${post.title}</div>
+                <div class="post-status status-${post.status}">
+                    ${post.status.toUpperCase()}
+                </div>
+            </div>
             <div class="post-meta">
-                <div>Status: <span class="status-${post.status}">${post.status}</span></div>
-                <div>Category: ${post.category ? post.category.name : 'Uncategorized'}</div>
-                <div>Posted: ${new Date(post.createdAt).toLocaleDateString()}</div>
-                ${post.rejectionReason ? `
-                    <div class="rejection-reason">
-                        Rejection Reason: ${post.rejectionReason}
-                    </div>
+                <div class="category">
+                    <i class="fas fa-folder"></i> ${post.category ? post.category.name : 'Uncategorized'}
+                </div>
+                <div class="date">
+                    <i class="fas fa-calendar"></i> ${new Date(post.createdAt).toLocaleDateString()}
+                </div>
+            </div>
+            ${post.rejectionReason ? `
+                <div class="rejection-reason">
+                    <i class="fas fa-exclamation-circle"></i> Rejection Reason: ${post.rejectionReason}
+                </div>
+            ` : ''}
+            <div class="post-actions">
+                ${post.status === 'pending' ? `
+                    <button class="cancel-btn" data-post-id="${post.id}">
+                        <i class="fas fa-times"></i> Cancel Post
+                    </button>
                 ` : ''}
+                <button class="delete-btn" data-post-id="${post.id}">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
             </div>
         </div>
     `;
+
+    // Add event listeners
+    const cancelBtn = div.querySelector('.cancel-btn');
+    const deleteBtn = div.querySelector('.delete-btn');
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => handleCancelPost(post.id));
+    }
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => handleDeletePost(post.id));
+    }
     
     return div;
+}
+
+async function handleCancelPost(postId) {
+    if (!confirm('Are you sure you want to cancel this post?')) return;
+
+    try {
+        const response = await fetch(`/api/posts/${postId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to cancel post');
+
+        loadUserPosts(); // Refresh the posts
+        alert('Post cancelled successfully');
+
+    } catch (error) {
+        console.error('Error cancelling post:', error);
+        alert('Error cancelling post');
+    }
+}
+
+async function handleDeletePost(postId) {
+    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) return;
+
+    try {
+        const response = await fetch(`/api/posts/${postId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to delete post');
+
+        loadUserPosts(); // Refresh the posts
+        alert('Post deleted successfully');
+
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        alert('Error deleting post');
+    }
 }
 
 function handleError(error) {
