@@ -123,6 +123,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter)
+LinkedIn - [@Patrick Ihirwe](https://www.linkedin.com/in/patrick-ihirwe-b105b6337/)
 
-Project Link: [https://github.com/yourusername/talynk](https://github.com/yourusername/talynk)
+Project Link: [https://github.com/ihirwepatrick/talynk](https://github.com/patrickihirwe/talynk)
