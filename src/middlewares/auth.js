@@ -13,12 +13,15 @@ exports.authenticate = async (req, res, next) => {
         }
 
         const token = authHeader.split(' ')[1];
+        console.log('Token received:', token); // Debug log
 
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-default-secret-key');
+        console.log('Decoded token:', decoded); // Debug log
 
         // Get user from database
         const user = await User.findByPk(decoded.id);
+        console.log('Found user:', user ? user.id : 'not found'); // Debug log
 
         if (!user) {
             return res.status(401).json({
@@ -33,9 +36,21 @@ exports.authenticate = async (req, res, next) => {
 
     } catch (error) {
         console.error('Authentication error:', error);
-        res.status(401).json({
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({
+                status: 'error',
+                message: 'Invalid token'
+            });
+        }
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({
+                status: 'error',
+                message: 'Token expired'
+            });
+        }
+        res.status(500).json({
             status: 'error',
-            message: 'Invalid token'
+            message: 'Authentication error'
         });
     }
 };
