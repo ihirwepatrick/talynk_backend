@@ -28,7 +28,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/uploads', express.static('uploads', {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.mp4')) {
+            res.set('Content-Type', 'video/mp4');
+        }
+    }
+}));
 app.use(express.static('public'));
 
 // Set security headers middleware

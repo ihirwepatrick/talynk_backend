@@ -83,25 +83,8 @@ exports.createPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
     try {
-        // Ensure user is admin
-        if (!req.user.isAdmin) {
-            return res.status(403).json({
-                status: 'error',
-                message: 'Access denied'
-            });
-        }
-
-        const { startDate, endDate } = req.query;
-        
-        let whereClause = {};
-        if (startDate && endDate) {
-            whereClause.createdAt = {
-                [Op.between]: [new Date(startDate), new Date(endDate)]
-            };
-        }
-
+        console.log('Fetching all posts...');
         const posts = await Post.findAll({
-            where: whereClause,
             include: [
                 {
                     model: User,
@@ -116,6 +99,22 @@ exports.getAllPosts = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
+        // Process media URLs
+        const processedPosts = posts.map(post => {
+            const postObj = post.toJSON();
+            // Log the original mediaUrl
+            console.log('Original mediaUrl:', postObj.mediaUrl);
+            
+            // Ensure the mediaUrl is properly formatted for the uploads directory
+            if (postObj.mediaUrl && !postObj.mediaUrl.startsWith('http')) {
+                postObj.mediaUrl = `/uploads/${postObj.mediaUrl.replace(/^uploads\//, '')}`;
+            }
+            
+            // Log the processed mediaUrl
+            console.log('Processed mediaUrl:', postObj.mediaUrl);
+            return postObj;
+        });
+
         // Get statistics
         const stats = {
             total: posts.length,
@@ -127,7 +126,7 @@ exports.getAllPosts = async (req, res) => {
         res.json({
             status: 'success',
             stats,
-            data: posts
+            data: processedPosts
         });
 
     } catch (error) {
@@ -320,16 +319,25 @@ exports.getUserPosts = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
+        // Process media URLs
+        const processedPosts = posts.map(post => {
+            const postObj = post.toJSON();
+            if (postObj.mediaUrl && !postObj.mediaUrl.startsWith('http')) {
+                postObj.mediaUrl = `/uploads/${postObj.mediaUrl.replace(/^uploads\//, '')}`;
+            }
+            return postObj;
+        });
+
         res.json({
             status: 'success',
-            data: posts
+            data: processedPosts
         });
 
     } catch (error) {
-        console.error('Error fetching user posts:', error);
+        console.error('Error in getUserPosts:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error fetching posts'
+            message: 'Error fetching user posts'
         });
     }
 };
@@ -392,6 +400,127 @@ exports.deletePost = async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Error deleting post'
+        });
+    }
+};
+
+exports.getPosts = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const offset = (page - 1) * limit;
+        const categoryId = req.query.category || null;
+        const sort = req.query.sort || 'latest';
+
+        let whereClause = {
+            status: 'approved'
+        };
+
+        if (categoryId) {
+            whereClause.categoryId = categoryId;
+        }
+
+        const order = sort === 'oldest' ? [['createdAt', 'ASC']] : [['createdAt', 'DESC']];
+
+        const posts = await Post.findAll({
+            where: whereClause,
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: order,
+            limit: limit,
+            offset: offset
+        });
+
+        const processedPosts = posts.map(post => {
+            const postObj = post.toJSON();
+            if (postObj.mediaUrl && !postObj.mediaUrl.startsWith('http')) {
+                postObj.mediaUrl = `/uploads/${postObj.mediaUrl.replace(/^uploads\//, '')}`;
+            }
+            return postObj;
+        });
+
+        res.json({
+            status: 'success',
+            data: processedPosts,
+            pagination: {
+                page,
+                limit,
+                hasMore: posts.length === limit
+            }
+        });
+
+    } catch (error) {
+        console.error('Error in getPosts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching posts'
+        });
+    }
+};
+
+exports.getUserApprovedPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: {
+                userId: req.user.id,
+                status: 'approved'
+            },
+            include: [
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            status: 'success',
+            data: posts
+        });
+    } catch (error) {
+        console.error('Error fetching approved posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching posts'
+        });
+    }
+};
+
+exports.getUserRejectedPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: {
+                userId: req.user.id,
+                status: 'rejected'
+            },
+            include: [
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            status: 'success',
+            data: posts
+        });
+    } catch (error) {
+        console.error('Error fetching rejected posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching posts'
         });
     }
 }; 

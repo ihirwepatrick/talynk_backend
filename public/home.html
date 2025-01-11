@@ -3,34 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
-    <title>Talynk - Home Feed</title>
-    <link rel="stylesheet" href="/assets/fonts/fontawesome/css/all.min.css">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
+    <title>Talynk - Home</title>
     <link rel="stylesheet" href="/css/home.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-brand">
-            <i class="fas fa-home"></i>
-            Talynk Feed
+            🏠 Talynk
         </div>
         <div class="nav-links">
-            <a href="/home.html" class="active">
-                <i class="fas fa-home"></i> Home
-            </a>
-            <a href="/user-dashboard.html">
-                <i class="fas fa-user"></i> My Profile
-            </a>
+            <a href="/home.html" class="active">🏠 Home</a>
+            <a href="/profile.html">👤 Profile</a>
+            <button id="create-post-btn" class="create-btn">📝 Create Post</button>
             <span id="username-display"></span>
-            <button id="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
+            <button id="logout-btn" class="logout-btn">🚪 Logout</button>
         </div>
     </nav>
 
     <div class="container">
-        <div class="feed-container">
-            <div id="posts-feed" class="posts-grid"></div>
+        <div class="filters">
+            <select id="category-filter">
+                <option value="">All Categories</option>
+            </select>
+            <select id="sort-filter">
+                <option value="latest">Latest</option>
+                <option value="oldest">Oldest</option>
+            </select>
+        </div>
+
+        <div id="posts-container" class="posts-grid"></div>
+        
+        <button id="load-more" class="load-more-btn">Load More</button>
+    </div>
+
+    <!-- Create Post Modal -->
+    <div id="create-post-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Create New Post</h2>
+            <form id="create-post-form">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="media">Upload Media (Image/Video)</label>
+                    <input type="file" id="media" accept="image/*,video/*" required>
+                </div>
+                <div class="form-group">
+                    <label for="caption">Caption (Optional)</label>
+                    <textarea id="caption"></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Create Post</button>
+            </form>
         </div>
     </div>
 

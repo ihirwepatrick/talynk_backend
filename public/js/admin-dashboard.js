@@ -112,66 +112,133 @@ function createPostCard(post) {
     const div = document.createElement('div');
     div.className = 'post-card';
     
-    let mediaElement = '';
-    let videoWatched = false;
-    
     if (post.mediaType === 'video') {
-        mediaElement = `
-            <div class="video-container">
-                <video id="video-${post.id}" class="post-media" controls>
-                    <source src="${post.mediaUrl}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                ${post.status === 'pending' ? `
-                    <div class="video-overlay" id="overlay-${post.id}">
-                        ⏱️ Please watch at least 1 minute before taking action
-                    </div>
-                ` : ''}
-            </div>`;
-    } else {
-        mediaElement = `<img src="${post.mediaUrl}" class="post-media" alt="${post.title}">`;
-    }
+        const videoContainer = document.createElement('div');
+        videoContainer.className = 'video-container';
         
-    div.innerHTML = `
-        ${mediaElement}
-        <div class="post-content">
-            <div class="post-header">
-                <div class="post-title">${post.title}</div>
-                <div class="post-id">🆔 ${post.id}</div>
-            </div>
-            <div class="post-meta">
-                <div class="user-info">
-                    👤 Posted by: ${post.author ? post.author.username : 'Unknown'}
-                </div>
-                <div class="category-info">
-                    📁 Category: ${post.category ? post.category.name : 'Uncategorized'}
-                </div>
-                <div class="date-info">
-                    📅 Posted: ${new Date(post.createdAt).toLocaleDateString()}
-                </div>
-                <div class="status-info status-${post.status}">
-                    ℹ️ Status: ${post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-                </div>
-                ${post.rejectionReason ? `
-                    <div class="rejection-reason">
-                        ⚠️ Rejection Reason: ${post.rejectionReason}
-                    </div>
-                ` : ''}
-            </div>
-            ${post.status === 'pending' ? `
-                <div class="post-actions" id="actions-${post.id}">
-                    <button class="action-btn approve-btn" data-action="approve" data-post-id="${post.id}" disabled>
-                        ✅ Approve
-                    </button>
-                    <button class="action-btn reject-btn" data-action="reject" data-post-id="${post.id}" disabled>
-                        ❌ Reject
-                    </button>
-                </div>
-            ` : ''}
-        </div>
-    `;
+        const video = document.createElement('video');
+        video.id = `video-${post.id}`;
+        video.className = 'post-media';
+        video.controls = true;
+        video.preload = 'metadata';
+        
+        const source = document.createElement('source');
+        source.src = post.mediaUrl;
+        source.type = 'video/mp4';
+        
+        video.appendChild(source);
+        videoContainer.appendChild(video);
 
-    // Add event listeners after creating the element
+        // Add overlay if pending
+        if (post.status === 'pending') {
+            const overlay = document.createElement('div');
+            overlay.id = `overlay-${post.id}`;
+            overlay.className = 'video-overlay';
+            const message = document.createElement('div');
+            message.className = 'video-message';
+            message.id = `message-${post.id}`;
+            message.textContent = '⏱️ Please watch at least half of the video before taking action';
+            overlay.appendChild(message);
+            videoContainer.appendChild(overlay);
+        }
+
+        div.appendChild(videoContainer);
+        
+        // Add event listeners
+        video.addEventListener('loadedmetadata', () => {
+            console.log(`Video ${post.id} duration:`, video.duration);
+            const requiredWatchTime = video.duration / 2;
+            const message = div.querySelector(`#message-${post.id}`);
+            if (message) {
+                const seconds = Math.round(requiredWatchTime);
+                message.textContent = `⏱️ Please watch at least ${seconds} seconds before taking action`;
+            }
+        });
+
+        video.addEventListener('play', () => {
+            console.log(`Video ${post.id} started playing`);
+            const overlay = div.querySelector(`#overlay-${post.id}`);
+            if (overlay) {
+                overlay.style.opacity = '0.5';
+            }
+        });
+
+        video.addEventListener('pause', () => {
+            console.log(`Video ${post.id} paused`);
+            const overlay = div.querySelector(`#overlay-${post.id}`);
+            if (overlay) {
+                overlay.style.opacity = '1';
+            }
+        });
+
+        let watchTime = 0;
+        video.addEventListener('timeupdate', () => {
+            watchTime = video.currentTime;
+            const requiredWatchTime = video.duration / 2;
+            console.log(`Video ${post.id} watch time: ${watchTime}/${requiredWatchTime}`);
+            
+            if (watchTime >= requiredWatchTime) {
+                const overlay = div.querySelector(`#overlay-${post.id}`);
+                const actions = div.querySelector(`#actions-${post.id}`);
+                if (overlay) {
+                    overlay.remove();
+                }
+                if (actions) {
+                    const buttons = actions.querySelectorAll('button');
+                    buttons.forEach(btn => {
+                        if (btn.disabled) {
+                            btn.disabled = false;
+                            console.log(`Enabling button for video ${post.id}`);
+                        }
+                    });
+                }
+            }
+        });
+    } else {
+        const img = document.createElement('img');
+        img.src = post.mediaUrl;
+        img.className = 'post-media';
+        img.alt = post.title;
+        div.appendChild(img);
+    }
+
+    // Create and append post content
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'post-content';
+    contentDiv.innerHTML = `
+        <div class="post-header">
+            <div class="post-title">${post.title}</div>
+            <div class="post-id">🆔 ${post.id}</div>
+        </div>
+        <div class="post-meta">
+            <div class="user-info">
+                👤 Posted by: ${post.author ? post.author.username : 'Unknown'}
+            </div>
+            <div class="category-info">
+                📁 Category: ${post.category ? post.category.name : 'Uncategorized'}
+            </div>
+            <div class="date-info">
+                📅 Posted: ${new Date(post.createdAt).toLocaleDateString()}
+            </div>
+            <div class="status-info status-${post.status}">
+                ℹ️ Status: ${post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+            </div>
+        </div>
+        ${post.status === 'pending' ? `
+            <div class="post-actions" id="actions-${post.id}">
+                <button class="action-btn approve-btn" data-action="approve" data-post-id="${post.id}" disabled>
+                    ✅ Approve
+                </button>
+                <button class="action-btn reject-btn" data-action="reject" data-post-id="${post.id}" disabled>
+                    ❌ Reject
+                </button>
+            </div>
+        ` : ''}
+    `;
+    
+    div.appendChild(contentDiv);
+
+    // Add event listeners for buttons
     if (post.status === 'pending') {
         const approveBtn = div.querySelector('[data-action="approve"]');
         const rejectBtn = div.querySelector('[data-action="reject"]');
@@ -185,6 +252,18 @@ function createPostCard(post) {
     }
 
     return div;
+}
+
+// Add this helper function to check video URLs
+function validateVideoUrl(url) {
+    console.log('Validating video URL:', url);
+    try {
+        const fullUrl = new URL(url, window.location.origin);
+        return fullUrl.href;
+    } catch (e) {
+        console.error('Invalid video URL:', e);
+        return url;
+    }
 }
 
 async function handleApprove(postId) {

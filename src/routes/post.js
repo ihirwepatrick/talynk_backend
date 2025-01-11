@@ -1,20 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const postController = require('../controllers/postController');
-const { uploadMedia } = require('../middlewares/upload');
-const { authenticate, isAdmin } = require('../middlewares/auth');
+const authenticate = require('../middlewares/authenticate');
 
-// Admin routes (require admin privileges)
-router.get('/admin/all', authenticate, isAdmin, postController.getAllPosts);
-router.patch('/admin/:id/status', authenticate, isAdmin, postController.updatePostStatus);
+// Add these new routes
+router.get('/', authenticate, postController.getPosts); // For home feed
+router.get('/approved', authenticate, postController.getApprovedPosts); // For approved posts
+router.get('/user/posts', authenticate, postController.getUserPosts); // For user's posts
+router.post('/', authenticate, postController.createPost);
 
-// User routes (require authentication)
-router.post('/', authenticate, uploadMedia, postController.createPost);
+// Existing routes
 router.get('/user/pending', authenticate, postController.getUserPendingPosts);
-router.get('/user/all', authenticate, postController.getUserPosts);
-
-// Add these routes
-router.get('/approved', authenticate, postController.getApprovedPosts);
-router.delete('/:id', authenticate, postController.deletePost);
+router.get('/user/approved', authenticate, postController.getUserApprovedPosts);
+router.get('/user/rejected', authenticate, postController.getUserRejectedPosts);
 
 module.exports = router; 
