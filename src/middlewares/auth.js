@@ -3,9 +3,11 @@ const { User } = require('../models');
 
 exports.authenticate = async (req, res, next) => {
     try {
-        // Get token from header
+        console.log('Authenticating request...');
         const authHeader = req.headers.authorization;
+        
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log('No token provided');
             return res.status(401).json({
                 status: 'error',
                 message: 'No token provided'
@@ -13,15 +15,13 @@ exports.authenticate = async (req, res, next) => {
         }
 
         const token = authHeader.split(' ')[1];
-        console.log('Token received:', token); // Debug log
+        console.log('Token received:', token.substring(0, 20) + '...');
 
-        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-default-secret-key');
-        console.log('Decoded token:', decoded); // Debug log
+        console.log('Decoded token:', decoded);
 
-        // Get user from database
         const user = await User.findByPk(decoded.id);
-        console.log('Found user:', user ? user.id : 'not found'); // Debug log
+        console.log('Found user:', user ? `ID: ${user.id}, Admin: ${user.isAdmin}` : 'Not found');
 
         if (!user) {
             return res.status(401).json({
@@ -30,39 +30,31 @@ exports.authenticate = async (req, res, next) => {
             });
         }
 
-        // Attach user to request
         req.user = user;
         next();
 
     } catch (error) {
         console.error('Authentication error:', error);
-        if (error.name === 'JsonWebTokenError') {
-            return res.status(401).json({
-                status: 'error',
-                message: 'Invalid token'
-            });
-        }
-        if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({
-                status: 'error',
-                message: 'Token expired'
-            });
-        }
-        res.status(500).json({
+        res.status(401).json({
             status: 'error',
-            message: 'Authentication error'
+            message: 'Invalid token'
         });
     }
 };
 
 exports.isAdmin = async (req, res, next) => {
     try {
+        console.log('Checking admin status for user:', req.user.id);
+        
         if (!req.user.isAdmin) {
+            console.log('Access denied: User is not admin');
             return res.status(403).json({
                 status: 'error',
                 message: 'Access denied. Admin privileges required.'
             });
         }
+
+        console.log('Admin access granted');
         next();
     } catch (error) {
         console.error('Admin check error:', error);

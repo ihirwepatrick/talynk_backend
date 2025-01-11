@@ -80,61 +80,49 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
+    console.log('Login attempt:', req.body.username);
     const { username, password } = req.body;
 
-    // Validate input
-    if (!username || !password) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Username and password are required'
-      });
-    }
-
-    // Find user
-    const user = await User.findOne({
-      where: { username }
-    });
-
+    const user = await User.findOne({ where: { username } });
+    
     if (!user) {
+      console.log('User not found:', username);
       return res.status(401).json({
         status: 'error',
         message: 'Invalid credentials'
       });
     }
 
-    // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
-
+    
     if (!isValidPassword) {
+      console.log('Invalid password for user:', username);
       return res.status(401).json({
         status: 'error',
         message: 'Invalid credentials'
       });
     }
 
-    // Generate token
     const token = jwt.sign(
       { id: user.id },
       process.env.JWT_SECRET || 'your-default-secret-key',
       { expiresIn: '24h' }
     );
 
-    // Update last login
-    await user.update({
-      lastLogin: new Date()
+    console.log('Login successful:', {
+      userId: user.id,
+      isAdmin: user.isAdmin
     });
 
     res.json({
       status: 'success',
       data: {
+        token,
         user: {
           id: user.id,
           username: user.username,
-          primaryPhone: user.primaryPhone,
-          secondaryPhone: user.secondaryPhone,
-          isAdmin: user.isAdmin // Include isAdmin in response
-        },
-        token
+          isAdmin: user.isAdmin
+        }
       }
     });
 
@@ -142,8 +130,7 @@ exports.login = async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error during login',
-      error: error.message
+      message: 'Error during login'
     });
   }
 };

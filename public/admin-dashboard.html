@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline';">
     <title>Talynk Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/css/admin-dashboard.css">
@@ -13,14 +14,6 @@
             <i class="fas fa-shield-alt"></i>
             Talynk Admin
         </div>
-        <div class="nav-links">
-            <a href="/admin-dashboard.html" class="active">
-                <i class="fas fa-chart-line"></i> Dashboard
-            </a>
-            <a href="/posts.html">
-                <i class="fas fa-images"></i> View All Posts
-            </a>
-        </div>
         <div class="nav-user">
             <span id="username-display"></span>
             <button id="logout-btn">
@@ -30,72 +23,58 @@
     </nav>
 
     <div class="container">
-        <!-- Date Range Filter -->
-        <div class="date-filter">
-            <h3>Filter by Date Range</h3>
-            <div class="filter-inputs">
-                <div class="input-group">
-                    <label for="start-date">From:</label>
-                    <input type="date" id="start-date">
-                </div>
-                <div class="input-group">
-                    <label for="end-date">To:</label>
-                    <input type="date" id="end-date">
-                </div>
+        <!-- Statistics Cards -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <i class="fas fa-list"></i>
+                <h3>Total Posts</h3>
+                <span id="total-count">0</span>
+            </div>
+            <div class="stat-card pending">
+                <i class="fas fa-clock"></i>
+                <h3>Pending</h3>
+                <span id="pending-count">0</span>
+            </div>
+            <div class="stat-card approved">
+                <i class="fas fa-check"></i>
+                <h3>Approved</h3>
+                <span id="approved-count">0</span>
+            </div>
+            <div class="stat-card rejected">
+                <i class="fas fa-times"></i>
+                <h3>Rejected</h3>
+                <span id="rejected-count">0</span>
+            </div>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="filter-section">
+            <div class="date-filter">
+                <input type="date" id="start-date" placeholder="Start Date">
+                <input type="date" id="end-date" placeholder="End Date">
                 <button id="apply-filter">Apply Filter</button>
                 <button id="reset-filter">Reset</button>
             </div>
         </div>
 
-        <!-- Statistics Cards -->
-        <div class="stats-grid">
-            <div class="stat-card total">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <div class="stat-content">
-                    <h3>Total Posts</h3>
-                    <p id="total-count">0</p>
-                </div>
-            </div>
-            <div class="stat-card pending">
-                <i class="fas fa-clock"></i>
-                <div class="stat-content">
-                    <h3>Pending Posts</h3>
-                    <p id="pending-count">0</p>
-                </div>
-            </div>
-            <div class="stat-card approved">
-                <i class="fas fa-check-circle"></i>
-                <div class="stat-content">
-                    <h3>Approved Posts</h3>
-                    <p id="approved-count">0</p>
-                </div>
-            </div>
-            <div class="stat-card rejected">
-                <i class="fas fa-times-circle"></i>
-                <div class="stat-content">
-                    <h3>Rejected Posts</h3>
-                    <p id="rejected-count">0</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Posts Sections -->
+        <!-- Posts Tabs -->
         <div class="posts-tabs">
-            <button class="tab-btn active" data-tab="pending">Pending Posts</button>
-            <button class="tab-btn" data-tab="approved">Approved Posts</button>
-            <button class="tab-btn" data-tab="rejected">Rejected Posts</button>
+            <button class="tab-btn active" data-tab="pending">
+                <i class="fas fa-clock"></i> Pending Review
+            </button>
+            <button class="tab-btn" data-tab="approved">
+                <i class="fas fa-check"></i> Approved
+            </button>
+            <button class="tab-btn" data-tab="rejected">
+                <i class="fas fa-times"></i> Rejected
+            </button>
         </div>
 
+        <!-- Posts Container -->
         <div class="posts-container">
-            <div id="pending-posts" class="posts-grid active">
-                <!-- Pending posts will be loaded here -->
-            </div>
-            <div id="approved-posts" class="posts-grid">
-                <!-- Approved posts will be loaded here -->
-            </div>
-            <div id="rejected-posts" class="posts-grid">
-                <!-- Rejected posts will be loaded here -->
-            </div>
+            <div id="pending-posts" class="posts-grid active"></div>
+            <div id="approved-posts" class="posts-grid"></div>
+            <div id="rejected-posts" class="posts-grid"></div>
         </div>
     </div>
 
@@ -119,26 +98,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/admin-dashboard.js"></script>
-    <!-- Add this inside the body tag, before the closing </body> -->
-<div id="rejection-modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Reject Post</h2>
-        <form id="rejection-form">
-            <input type="hidden" id="reject-post-id">
-            <div class="form-group">
-                <label for="rejection-reason">Reason for Rejection (Required):</label>
-                <textarea id="rejection-reason" required minlength="10" 
-                    placeholder="Please provide a detailed reason for rejection (minimum 10 characters)"></textarea>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="cancel-btn" onclick="closeRejectionModal()">Cancel</button>
-                <button type="submit" class="reject-confirm-btn">Submit Rejection</button>
-            </div>
-        </form>
-    </div>
-</div>
 </body>
 </html> 

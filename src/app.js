@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/post');
 const categoryRoutes = require('./routes/category');
 const userRoutes = require('./routes/user');
+const { authenticate, isAdmin } = require('./middlewares/auth');
 
 const app = express();
 
