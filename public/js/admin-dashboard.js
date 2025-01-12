@@ -1,14 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user'));
-
-    if (!token || !user || !user.isAdmin) {
+    if (!token) {
         window.location.href = '/test.html';
         return;
     }
-
-    document.getElementById('username-display').textContent = user.username;
-    setupEventListeners();
     loadDashboardData();
 });
 
@@ -41,62 +36,39 @@ function setupEventListeners() {
 
 async function loadDashboardData() {
     try {
-        console.log('Loading dashboard data...');
-        const startDate = document.getElementById('start-date').value;
-        const endDate = document.getElementById('end-date').value;
-
-        let url = '/api/posts/admin/all';
-        if (startDate && endDate) {
-            url += `?startDate=${startDate}&endDate=${endDate}`;
-        }
-
-        const response = await fetch(url, {
+        console.log('Fetching dashboard data...'); // Debug log
+        const response = await fetch('/api/admin/dashboard', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
 
-        console.log('Response status:', response.status);
-        const data = await response.json();
-        console.log('Fetched data:', data);
-
         if (!response.ok) {
-            throw new Error(data.message || 'Failed to fetch posts');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const data = await response.json();
+        console.log('Dashboard data received:', data); // Debug log
+
         // Update statistics
-        updateStatistics(data.stats);
+        document.getElementById('total-count').textContent = data.data.stats.total;
+        document.getElementById('pending-count').textContent = data.data.stats.pending;
+        document.getElementById('approved-count').textContent = data.data.stats.approved;
+        document.getElementById('rejected-count').textContent = data.data.stats.rejected;
 
-        // Group posts by status
-        const groupedPosts = {
-            pending: data.data.filter(post => post.status === 'pending'),
-            approved: data.data.filter(post => post.status === 'approved'),
-            rejected: data.data.filter(post => post.status === 'rejected')
-        };
-
-        // Display posts
-        Object.keys(groupedPosts).forEach(status => {
-            const container = document.getElementById(`${status}-posts`);
-            container.innerHTML = '';
-            
-            if (groupedPosts[status].length === 0) {
-                container.innerHTML = `<div class="no-posts">No ${status} posts found</div>`;
-                return;
-            }
-
-            groupedPosts[status].forEach(post => {
-                container.appendChild(createPostCard(post));
-            });
+        // Update recent posts
+        const postsContainer = document.getElementById('posts-container');
+        postsContainer.innerHTML = ''; // Clear existing posts
+        
+        data.data.recentPosts.forEach(post => {
+            const postCard = createPostCard(post);
+            postsContainer.appendChild(postCard);
         });
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
-        if (error.message.includes('401') || error.message.includes('403')) {
-            alert('Session expired. Please login again.');
-            window.location.href = '/test.html';
-        } else {
-            alert('Error loading dashboard data: ' + error.message);
-        }
+        // Optionally show error to user
+        // alert('Error loading dashboard data. Please try again.');
     }
 }
 

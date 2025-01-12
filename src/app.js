@@ -10,6 +10,7 @@ const postRoutes = require('./routes/post');
 const categoryRoutes = require('./routes/category');
 const userRoutes = require('./routes/user');
 const { authenticate, isAdmin } = require('./middlewares/auth');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
+      
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:"],
     },
@@ -51,6 +53,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve HTML files
 app.get('/', (req, res) => {

@@ -7,26 +7,18 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
     password: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    primaryPhone: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    secondaryPhone: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    faceImageUrl: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    isAdmin: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
+    role: {
+      type: DataTypes.ENUM('user', 'admin'),
+      defaultValue: 'user'
     }
   }, {});
 
