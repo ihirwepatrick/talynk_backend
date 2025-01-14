@@ -380,4 +380,29 @@ style.textContent = `
         cursor: not-allowed;
     }
 `;
-document.head.appendChild(style); 
+document.head.appendChild(style);
+
+// Add this function to update the dashboard with data
+function updateDashboard(data) {
+    try {
+        console.log('Updating dashboard with data:', data);
+
+        // Update statistics
+        document.getElementById('total-count').textContent = data.data.stats.total || 0;
+        document.getElementById('pending-count').textContent = data.data.stats.pending || 0;
+        document.getElementById('approved-count').textContent = data.data.stats.approved || 0;
+        document.getElementById('rejected-count').textContent = data.data.stats.rejected || 0;
+
+        // Update posts container if it exists
+        const postsContainer = document.getElementById('posts-container');
+        if (postsContainer && data.data.recentPosts) {
+            postsContainer.innerHTML = ''; // Clear existing posts
+            data.data.recentPosts.forEach(post => {
+                const postCard = createPostCard(post);
+                postsContainer.appendChild(postCard);
+            });
+        }
+    } catch (error) {
+        console.error('Error updating dashboard:', error);
+    }
+} 
