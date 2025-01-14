@@ -3,7 +3,6 @@ const { User } = require('../models');
 
 const authenticate = async (req, res, next) => {
     try {
-        // Get token from header
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({
@@ -14,21 +13,28 @@ const authenticate = async (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await User.findByPk(decoded.id);
+            
+            if (!user) {
+                return res.status(401).json({
+                    status: 'error',
+                    message: 'User not found'
+                });
+            }
 
-        // Get user from database
-        const user = await User.findByPk(decoded.id);
-        if (!user) {
-            return res.status(401).json({
-                status: 'error',
-                message: 'User not found'
-            });
+            req.user = user;
+            next();
+        } catch (err) {
+            if (err.name === 'TokenExpiredError') {
+                return res.status(401).json({
+                    status: 'error',
+                    message: 'Token expired, please login again'
+                });
+            }
+            throw err;
         }
-
-        // Attach user to request object
-        req.user = user;
-        next();
 
     } catch (error) {
         console.error('Authentication error:', error);

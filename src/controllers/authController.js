@@ -81,22 +81,23 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     console.log('Login attempt:', req.body.username);
-    const { username, password } = req.body;
-
-    const user = await User.findOne({ where: { username } });
     
+    const user = await User.findOne({
+      where: { username: req.body.username },
+      attributes: ['id', 'username', 'password', 'role']
+    });
+
     if (!user) {
-      console.log('User not found:', username);
       return res.status(401).json({
         status: 'error',
         message: 'Invalid credentials'
       });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(req.body.password, user.password);
     
     if (!isValidPassword) {
-      console.log('Invalid password for user:', username);
+      console.log('Invalid password for user:', req.body.username);
       return res.status(401).json({
         status: 'error',
         message: 'Invalid credentials'
@@ -104,8 +105,8 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET || 'your-default-secret-key',
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
@@ -121,7 +122,7 @@ exports.login = async (req, res) => {
         user: {
           id: user.id,
           username: user.username,
-          isAdmin: user.isAdmin
+          role: user.role
         }
       }
     });
@@ -130,7 +131,7 @@ exports.login = async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error during login'
+      message: 'Internal server error'
     });
   }
 };

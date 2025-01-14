@@ -36,39 +36,41 @@ function setupEventListeners() {
 
 async function loadDashboardData() {
     try {
-        console.log('Fetching dashboard data...'); // Debug log
+        const token = localStorage.getItem('token');
+        console.log('Token:', token ? 'Present' : 'Missing'); // Debug log
+
+        if (!token) {
+            window.location.href = '/test.html';
+            return;
+        }
+
         const response = await fetch('/api/admin/dashboard', {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
+
+        if (response.status === 401) {
+            console.log('Unauthorized access, redirecting to login...');
+            localStorage.removeItem('token');
+            window.location.href = '/test.html';
+            return;
+        }
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Dashboard data received:', data); // Debug log
+        console.log('Dashboard data:', data); // Debug log
 
-        // Update statistics
-        document.getElementById('total-count').textContent = data.data.stats.total;
-        document.getElementById('pending-count').textContent = data.data.stats.pending;
-        document.getElementById('approved-count').textContent = data.data.stats.approved;
-        document.getElementById('rejected-count').textContent = data.data.stats.rejected;
-
-        // Update recent posts
-        const postsContainer = document.getElementById('posts-container');
-        postsContainer.innerHTML = ''; // Clear existing posts
-        
-        data.data.recentPosts.forEach(post => {
-            const postCard = createPostCard(post);
-            postsContainer.appendChild(postCard);
-        });
+        // Update the dashboard with the received data
+        updateDashboard(data);
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
-        // Optionally show error to user
-        // alert('Error loading dashboard data. Please try again.');
     }
 }
 
