@@ -1,10 +1,59 @@
+let currentStatus = 'pending'; // Default status
+
+function setupTabListeners() {
+    const tabs = document.querySelectorAll('.status-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            tab.classList.add('active');
+            // Update current status and reload posts
+            currentStatus = tab.dataset.status;
+            loadPosts(currentStatus);
+        });
+    });
+}
+
+async function loadPosts(status) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/posts/${status}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const postsContainer = document.getElementById('posts-container');
+        postsContainer.innerHTML = ''; // Clear existing posts
+
+        if (data.data && Array.isArray(data.data)) {
+            data.data.forEach(post => {
+                const postCard = createPostCard(post);
+                postsContainer.appendChild(postCard);
+            });
+        }
+
+    } catch (error) {
+        console.error(`Error loading ${status} posts:`, error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
     if (!token) {
         window.location.href = '/test.html';
         return;
     }
+    
+    setupTabListeners();
     loadDashboardData();
+    loadPosts('pending'); // Load pending posts by default
 });
 
 function setupEventListeners() {
@@ -393,14 +442,18 @@ function updateDashboard(data) {
         document.getElementById('approved-count').textContent = data.data.stats.approved || 0;
         document.getElementById('rejected-count').textContent = data.data.stats.rejected || 0;
 
-        // Update posts container if it exists
-        const postsContainer = document.getElementById('posts-container');
-        if (postsContainer && data.data.recentPosts) {
-            postsContainer.innerHTML = ''; // Clear existing posts
-            data.data.recentPosts.forEach(post => {
-                const postCard = createPostCard(post);
-                postsContainer.appendChild(postCard);
-            });
+        // Update tab badges if they exist
+        const pendingBadge = document.querySelector('[data-status="pending"] .count');
+        const approvedBadge = document.querySelector('[data-status="approved"] .count');
+        const rejectedBadge = document.querySelector('[data-status="rejected"] .count');
+
+        if (pendingBadge) pendingBadge.textContent = data.data.stats.pending || 0;
+        if (approvedBadge) approvedBadge.textContent = data.data.stats.approved || 0;
+        if (rejectedBadge) rejectedBadge.textContent = data.data.stats.rejected || 0;
+
+        // Load initial posts if not already loaded
+        if (!document.querySelector('.post-card')) {
+            loadPosts(currentStatus);
         }
     } catch (error) {
         console.error('Error updating dashboard:', error);
