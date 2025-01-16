@@ -83,51 +83,93 @@ function setupEventListeners() {
     });
 }
 
-async function loadDashboardData() {
+async function loadDashboardData(status = 'pending') {
     try {
         const token = localStorage.getItem('token');
-        console.log('Token:', token ? 'Present' : 'Missing'); // Debug log
-
-        if (!token) {
-            window.location.href = '/test.html';
-            return;
-        }
-
         const response = await fetch('/api/admin/dashboard', {
-            method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
 
-        if (response.status === 401) {
-            console.log('Unauthorized access, redirecting to login...');
-            localStorage.removeItem('token');
-            window.location.href = '/test.html';
-            return;
-        }
-
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Dashboard data:', data); // Debug log
+        
+        // Update stats with emojis
+        updateStats({
+            total: {
+                icon: '📊', // Chart emoji for Total Posts
+                count: data.data.stats.total || 0,
+                label: 'Total Posts'
+            },
+            pending: {
+                icon: '⌛', // Hourglass emoji for Pending
+                count: data.data.stats.pending || 0,
+                label: 'Pending'
+            },
+            approved: {
+                icon: '✅', // Check mark emoji for Approved
+                count: data.data.stats.approved || 0,
+                label: 'Approved'
+            },
+            rejected: {
+                icon: '❌', // Cross mark emoji for Rejected
+                count: data.data.stats.rejected || 0,
+                label: 'Rejected'
+            }
+        });
 
-        // Update the dashboard with the received data
-        updateDashboard(data);
+        // Load posts based on status
+        const filteredPosts = data.data.recentPosts.filter(post => {
+            if (status === 'all') return true;
+            return post.status === status;
+        });
+
+        updatePosts(filteredPosts);
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
     }
 }
 
-function updateStatistics(stats) {
-    document.getElementById('total-count').textContent = stats.total;
-    document.getElementById('pending-count').textContent = stats.pending;
-    document.getElementById('approved-count').textContent = stats.approved;
-    document.getElementById('rejected-count').textContent = stats.rejected;
+function updateStats(stats) {
+    // Update each stat card with its emoji and count
+    Object.entries(stats).forEach(([key, value]) => {
+        const statCard = document.querySelector(`.stat-card.${key}`);
+        if (statCard) {
+            statCard.innerHTML = `
+                <div class="stat-icon">${value.icon}</div>
+                <div class="stat-label">${value.label}</div>
+                <div class="stat-count">${value.count}</div>
+            `;
+        }
+    });
+
+    // Update the filter buttons counts
+    document.querySelectorAll('.status-filter').forEach(button => {
+        const status = button.getAttribute('data-status');
+        const count = stats[status]?.count || 0;
+        const countBadge = button.querySelector('.count');
+        if (countBadge) {
+            countBadge.textContent = count;
+        }
+    });
+}
+
+function updatePosts(posts) {
+    const postsContainer = document.getElementById('posts-container');
+    postsContainer.innerHTML = ''; // Clear existing posts
+
+    if (Array.isArray(posts)) {
+        posts.forEach(post => {
+            const postCard = createPostCard(post);
+            postsContainer.appendChild(postCard);
+        });
+    }
 }
 
 // Create Post Card
@@ -458,4 +500,55 @@ function updateDashboard(data) {
     } catch (error) {
         console.error('Error updating dashboard:', error);
     }
-} 
+}
+
+// Add event listeners for the status filters
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/test.html';
+        return;
+    }
+
+    // Status filter buttons
+    document.querySelectorAll('.status-filter').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.status-filter').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            button.classList.add('active');
+            
+            // Load data for selected status
+            const status = button.getAttribute('data-status');
+            loadDashboardData(status);
+        });
+    });
+
+    // Date filter
+    const applyFilterBtn = document.querySelector('#apply-filter');
+    const resetBtn = document.querySelector('#reset');
+
+    if (applyFilterBtn) {
+        applyFilterBtn.addEventListener('click', () => {
+            const startDate = document.querySelector('#start-date').value;
+            const endDate = document.querySelector('#end-date').value;
+            // Implement date filtering logic here
+        });
+    }
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            document.querySelector('#start-date').value = '';
+            document.querySelector('#end-date').value = '';
+            loadDashboardData('pending');
+        });
+    }
+
+    // Initial load
+    loadDashboardData('pending');
+}); 
