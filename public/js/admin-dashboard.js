@@ -83,7 +83,7 @@ function setupEventListeners() {
     });
 }
 
-async function loadDashboardData(status = 'pending') {
+async function loadDashboardData() {
     try {
         const token = localStorage.getItem('token');
         const response = await fetch('/api/admin/dashboard', {
@@ -99,182 +99,45 @@ async function loadDashboardData(status = 'pending') {
 
         const data = await response.json();
         
-        // Update stats with emojis
-        updateStats({
-            total: {
-                icon: '📊', // Chart emoji for Total Posts
-                count: data.data.stats.total || 0,
-                label: 'Total Posts'
-            },
-            pending: {
-                icon: '⌛', // Hourglass emoji for Pending
-                count: data.data.stats.pending || 0,
-                label: 'Pending'
-            },
-            approved: {
-                icon: '✅', // Check mark emoji for Approved
-                count: data.data.stats.approved || 0,
-                label: 'Approved'
-            },
-            rejected: {
-                icon: '❌', // Cross mark emoji for Rejected
-                count: data.data.stats.rejected || 0,
-                label: 'Rejected'
-            }
-        });
+        // Update statistics
+        document.getElementById('total-count').textContent = data.data.stats.total || 0;
+        document.getElementById('pending-count').textContent = data.data.stats.pending || 0;
+        document.getElementById('approved-count').textContent = data.data.stats.approved || 0;
+        document.getElementById('rejected-count').textContent = data.data.stats.rejected || 0;
 
-        // Load posts based on status
-        const filteredPosts = data.data.recentPosts.filter(post => {
-            if (status === 'all') return true;
-            return post.status === status;
-        });
+        // Update posts container
+        const postsContainer = document.getElementById('posts-container');
+        postsContainer.innerHTML = ''; // Clear existing posts
 
-        updatePosts(filteredPosts);
+        if (data.data.recentPosts && Array.isArray(data.data.recentPosts)) {
+            data.data.recentPosts.forEach(post => {
+                const postCard = createPostCard(post);
+                postsContainer.appendChild(postCard);
+            });
+        }
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
     }
 }
 
-function updateStats(stats) {
-    // Update each stat card with its emoji and count
-    Object.entries(stats).forEach(([key, value]) => {
-        const statCard = document.querySelector(`.stat-card.${key}`);
-        if (statCard) {
-            statCard.innerHTML = `
-                <div class="stat-icon">${value.icon}</div>
-                <div class="stat-label">${value.label}</div>
-                <div class="stat-count">${value.count}</div>
-            `;
-        }
-    });
-
-    // Update the filter buttons counts
-    document.querySelectorAll('.status-filter').forEach(button => {
-        const status = button.getAttribute('data-status');
-        const count = stats[status]?.count || 0;
-        const countBadge = button.querySelector('.count');
-        if (countBadge) {
-            countBadge.textContent = count;
-        }
-    });
-}
-
-function updatePosts(posts) {
-    const postsContainer = document.getElementById('posts-container');
-    postsContainer.innerHTML = ''; // Clear existing posts
-
-    if (Array.isArray(posts)) {
-        posts.forEach(post => {
-            const postCard = createPostCard(post);
-            postsContainer.appendChild(postCard);
-        });
-    }
-}
-
-// Create Post Card
 function createPostCard(post) {
     const div = document.createElement('div');
     div.className = 'post-card';
     
-    if (post.mediaType === 'video') {
-        const videoContainer = document.createElement('div');
-        videoContainer.className = 'video-container';
-        
-        const video = document.createElement('video');
-        video.id = `video-${post.id}`;
-        video.className = 'post-media';
-        video.controls = true;
-        video.preload = 'metadata';
-        
-        const source = document.createElement('source');
-        source.src = post.mediaUrl;
-        source.type = 'video/mp4';
-        
-        video.appendChild(source);
-        videoContainer.appendChild(video);
+    // Create media element based on type
+    const mediaElement = post.mediaType === 'video' 
+        ? `<video class="post-media" controls>
+             <source src="${post.mediaUrl}" type="video/mp4">
+           </video>`
+        : `<img src="${post.mediaUrl}" class="post-media" alt="${post.title}">`;
 
-        // Add overlay if pending
-        if (post.status === 'pending') {
-            const overlay = document.createElement('div');
-            overlay.id = `overlay-${post.id}`;
-            overlay.className = 'video-overlay';
-            const message = document.createElement('div');
-            message.className = 'video-message';
-            message.id = `message-${post.id}`;
-            message.textContent = '⏱️ Please watch at least half of the video before taking action';
-            overlay.appendChild(message);
-            videoContainer.appendChild(overlay);
-        }
-
-        div.appendChild(videoContainer);
-        
-        // Add event listeners
-        video.addEventListener('loadedmetadata', () => {
-            console.log(`Video ${post.id} duration:`, video.duration);
-            const requiredWatchTime = video.duration / 2;
-            const message = div.querySelector(`#message-${post.id}`);
-            if (message) {
-                const seconds = Math.round(requiredWatchTime);
-                message.textContent = `⏱️ Please watch at least ${seconds} seconds before taking action`;
-            }
-        });
-
-        video.addEventListener('play', () => {
-            console.log(`Video ${post.id} started playing`);
-            const overlay = div.querySelector(`#overlay-${post.id}`);
-            if (overlay) {
-                overlay.style.opacity = '0.5';
-            }
-        });
-
-        video.addEventListener('pause', () => {
-            console.log(`Video ${post.id} paused`);
-            const overlay = div.querySelector(`#overlay-${post.id}`);
-            if (overlay) {
-                overlay.style.opacity = '1';
-            }
-        });
-
-        let watchTime = 0;
-        video.addEventListener('timeupdate', () => {
-            watchTime = video.currentTime;
-            const requiredWatchTime = video.duration / 2;
-            console.log(`Video ${post.id} watch time: ${watchTime}/${requiredWatchTime}`);
-            
-            if (watchTime >= requiredWatchTime) {
-                const overlay = div.querySelector(`#overlay-${post.id}`);
-                const actions = div.querySelector(`#actions-${post.id}`);
-                if (overlay) {
-                    overlay.remove();
-                }
-                if (actions) {
-                    const buttons = actions.querySelectorAll('button');
-                    buttons.forEach(btn => {
-                        if (btn.disabled) {
-                            btn.disabled = false;
-                            console.log(`Enabling button for video ${post.id}`);
-                        }
-                    });
-                }
-            }
-        });
-    } else {
-        const img = document.createElement('img');
-        img.src = post.mediaUrl;
-        img.className = 'post-media';
-        img.alt = post.title;
-        div.appendChild(img);
-    }
-
-    // Create and append post content
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'post-content';
-    contentDiv.innerHTML = `
+    div.innerHTML = `
         <div class="post-header">
-            <div class="post-title">${post.title}</div>
+            <div class="post-title">📝 ${post.title}</div>
             <div class="post-id">🆔 ${post.id}</div>
         </div>
+        ${mediaElement}
         <div class="post-meta">
             <div class="user-info">
                 👤 Posted by: ${post.author ? post.author.username : 'Unknown'}
@@ -300,147 +163,104 @@ function createPostCard(post) {
             </div>
         ` : ''}
     `;
-    
-    div.appendChild(contentDiv);
 
-    // Add event listeners for buttons
-    if (post.status === 'pending') {
-        const approveBtn = div.querySelector('[data-action="approve"]');
-        const rejectBtn = div.querySelector('[data-action="reject"]');
-        
-        if (approveBtn) {
-            approveBtn.addEventListener('click', () => handleApprove(post.id));
+    // Add event listeners for video if present
+    if (post.mediaType === 'video') {
+        const video = div.querySelector('video');
+        const actions = div.querySelector(`#actions-${post.id}`);
+
+        if (video && actions) {
+            let watchTime = 0;
+            video.addEventListener('timeupdate', () => {
+                watchTime = video.currentTime;
+                const duration = video.duration;
+                if (watchTime >= duration / 2) { // Enable buttons after watching half the video
+                    const buttons = actions.querySelectorAll('button');
+                    buttons.forEach(btn => btn.disabled = false);
+                }
+            });
         }
-        if (rejectBtn) {
-            rejectBtn.addEventListener('click', () => showRejectionModal(post.id));
-        }
+    }
+
+    // Add event listeners for action buttons
+    const approveBtn = div.querySelector('[data-action="approve"]');
+    const rejectBtn = div.querySelector('[data-action="reject"]');
+    
+    if (approveBtn) {
+        approveBtn.addEventListener('click', () => handleApprove(post.id));
+    }
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', () => showRejectionModal(post.id));
     }
 
     return div;
 }
 
-// Add this helper function to check video URLs
-function validateVideoUrl(url) {
-    console.log('Validating video URL:', url);
-    try {
-        const fullUrl = new URL(url, window.location.origin);
-        return fullUrl.href;
-    } catch (e) {
-        console.error('Invalid video URL:', e);
-        return url;
+// Initialize dashboard when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/test.html';
+        return;
     }
-}
+    loadDashboardData();
+});
 
+// Add functions for handling approve/reject actions
 async function handleApprove(postId) {
     try {
-        console.log('Approving post:', postId);
-        const response = await fetch(`/api/posts/admin/${postId}/status`, {
+        const response = await fetch(`/api/posts/${postId}/approve`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                status: 'approved'
-            })
+            }
         });
 
         if (!response.ok) {
             throw new Error('Failed to approve post');
         }
 
-        // Refresh the dashboard data
-        await loadDashboardData();
-        
+        // Reload dashboard data after successful approval
+        loadDashboardData();
+        alert('Post approved successfully!');
+
     } catch (error) {
         console.error('Error approving post:', error);
         alert('Error approving post: ' + error.message);
     }
 }
 
+function showRejectionModal(postId) {
+    // Implement rejection modal logic here
+    const reason = prompt('Please enter rejection reason:');
+    if (reason) {
+        handleReject(postId, reason);
+    }
+}
+
 async function handleReject(postId, reason) {
     try {
-        console.log('Rejecting post:', postId, 'Reason:', reason);
-        const response = await fetch(`/api/posts/admin/${postId}/status`, {
+        const response = await fetch(`/api/posts/${postId}/reject`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
-                status: 'rejected',
-                rejectionReason: reason
-            })
+            body: JSON.stringify({ reason })
         });
 
         if (!response.ok) {
             throw new Error('Failed to reject post');
         }
 
-        // Close modal and refresh dashboard
-        closeRejectionModal();
-        await loadDashboardData();
-        
+        // Reload dashboard data after successful rejection
+        loadDashboardData();
+        alert('Post rejected successfully!');
+
     } catch (error) {
         console.error('Error rejecting post:', error);
         alert('Error rejecting post: ' + error.message);
-    }
-}
-
-// Rejection modal handlers
-function showRejectionModal(postId) {
-    const modal = document.getElementById('rejection-modal');
-    document.getElementById('reject-post-id').value = postId;
-    document.getElementById('rejection-reason').value = '';
-    modal.style.display = 'block';
-}
-
-function closeRejectionModal() {
-    const modal = document.getElementById('rejection-modal');
-    modal.style.display = 'none';
-}
-
-// Setup rejection form submission
-document.getElementById('rejection-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const postId = document.getElementById('reject-post-id').value;
-    const reason = document.getElementById('rejection-reason').value;
-    await handleReject(postId, reason);
-});
-
-// Close modal when clicking outside
-window.addEventListener('click', (e) => {
-    const modal = document.getElementById('rejection-modal');
-    if (e.target === modal) {
-        closeRejectionModal();
-    }
-});
-
-// Update Post Status
-async function updatePostStatus(postId, status, rejectionReason = null) {
-    try {
-        const response = await fetch(`/api/posts/${postId}/status`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                status,
-                rejectionReason: rejectionReason
-            })
-        });
-
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.message || 'Failed to update post status');
-        }
-
-        alert(`Post ${status} successfully`);
-        loadDashboardData();
-    } catch (error) {
-        console.error('Error updating post status:', error);
-        alert('Error updating post status: ' + error.message);
     }
 }
 
