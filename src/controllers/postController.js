@@ -184,17 +184,25 @@ exports.getPendingPosts = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
+        // Process media URLs
+        const processedPosts = posts.map(post => {
+            const postObj = post.toJSON();
+            if (postObj.mediaUrl && !postObj.mediaUrl.startsWith('http')) {
+                postObj.mediaUrl = `/uploads/${postObj.mediaUrl.replace(/^uploads\//, '')}`;
+            }
+            return postObj;
+        });
+
         res.json({
             status: 'success',
-            data: posts
+            data: processedPosts
         });
 
     } catch (error) {
         console.error('Error fetching pending posts:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error fetching pending posts',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Error fetching posts'
         });
     }
 };
@@ -360,10 +368,19 @@ exports.getApprovedPosts = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
+        const processedPosts = posts.map(post => {
+            const postObj = post.toJSON();
+            if (postObj.mediaUrl && !postObj.mediaUrl.startsWith('http')) {
+                postObj.mediaUrl = `/uploads/${postObj.mediaUrl.replace(/^uploads\//, '')}`;
+            }
+            return postObj;
+        });
+
         res.json({
             status: 'success',
-            data: posts
+            data: processedPosts
         });
+
     } catch (error) {
         console.error('Error fetching approved posts:', error);
         res.status(500).json({
@@ -521,6 +538,109 @@ exports.getUserRejectedPosts = async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Error fetching posts'
+        });
+    }
+};
+
+exports.getRejectedPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: { status: 'rejected' },
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    as: 'category'
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        const processedPosts = posts.map(post => {
+            const postObj = post.toJSON();
+            if (postObj.mediaUrl && !postObj.mediaUrl.startsWith('http')) {
+                postObj.mediaUrl = `/uploads/${postObj.mediaUrl.replace(/^uploads\//, '')}`;
+            }
+            return postObj;
+        });
+
+        res.json({
+            status: 'success',
+            data: processedPosts
+        });
+
+    } catch (error) {
+        console.error('Error fetching rejected posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching posts'
+        });
+    }
+};
+
+exports.approvePost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const post = await Post.findByPk(postId);
+
+        if (!post) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Post not found'
+            });
+        }
+
+        await post.update({ status: 'approved' });
+
+        res.json({
+            status: 'success',
+            message: 'Post approved successfully',
+            data: post
+        });
+
+    } catch (error) {
+        console.error('Error approving post:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error approving post'
+        });
+    }
+};
+
+exports.rejectPost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { reason } = req.body;
+
+        const post = await Post.findByPk(postId);
+
+        if (!post) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Post not found'
+            });
+        }
+
+        await post.update({ 
+            status: 'rejected',
+            rejectionReason: reason
+        });
+
+        res.json({
+            status: 'success',
+            message: 'Post rejected successfully',
+            data: post
+        });
+
+    } catch (error) {
+        console.error('Error rejecting post:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error rejecting post'
         });
     }
 }; 
