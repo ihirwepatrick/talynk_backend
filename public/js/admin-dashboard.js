@@ -15,7 +15,7 @@ function setupTabListeners() {
     });
 }
 
-async function loadPosts(status) {
+async function loadPosts(status = 'pending') {
     try {
         const token = localStorage.getItem('token');
         const response = await fetch(`/api/posts/${status}`, {
@@ -34,13 +34,77 @@ async function loadPosts(status) {
 
         if (data.data && Array.isArray(data.data)) {
             data.data.forEach(post => {
-                const postCard = createPostCard(post);
-                postsContainer.appendChild(postCard);
+                const postElement = createPostElement(post);
+                postsContainer.appendChild(postElement);
             });
         }
-
     } catch (error) {
         console.error(`Error loading ${status} posts:`, error);
+    }
+}
+
+function createPostElement(post) {
+    const postDiv = document.createElement('div');
+    postDiv.className = 'post-card';
+
+    const mediaHtml = post.mediaType === 'video' 
+        ? `<video src="${post.mediaUrl}" controls class="post-media"></video>`
+        : `<img src="${post.mediaUrl}" alt="Post media" class="post-media">`;
+
+    postDiv.innerHTML = `
+        <div class="post-header">
+            <h3 class="post-title">📝 ${post.title}</h3>
+            <span class="post-date">📅 ${new Date(post.createdAt).toLocaleDateString()}</span>
+        </div>
+        <div class="post-media-container">
+            ${mediaHtml}
+        </div>
+        <div class="post-info">
+            <p class="post-author">👤 Author: ${post.author ? post.author.username : 'Unknown'}</p>
+            <p class="post-category">📁 Category: ${post.category ? post.category.name : 'Uncategorized'}</p>
+            <p class="post-status">Status: ${getStatusEmoji(post.status)} ${post.status}</p>
+        </div>
+        ${post.status === 'pending' ? `
+            <div class="post-actions">
+                <button onclick="handleApprove(${post.id})" class="approve-btn">✅ Approve</button>
+                <button onclick="handleReject(${post.id})" class="reject-btn">❌ Reject</button>
+            </div>
+        ` : ''}
+        ${post.status === 'rejected' && post.rejectionReason ? `
+            <div class="rejection-reason">
+                <p>❗ Rejection Reason: ${post.rejectionReason}</p>
+            </div>
+        ` : ''}
+    `;
+
+    // Add video watch time check
+    if (post.mediaType === 'video' && post.status === 'pending') {
+        const video = postDiv.querySelector('video');
+        const approveBtn = postDiv.querySelector('.approve-btn');
+        const rejectBtn = postDiv.querySelector('.reject-btn');
+        
+        if (video && approveBtn && rejectBtn) {
+            approveBtn.disabled = true;
+            rejectBtn.disabled = true;
+            
+            video.addEventListener('timeupdate', () => {
+                if (video.currentTime >= video.duration / 2) {
+                    approveBtn.disabled = false;
+                    rejectBtn.disabled = false;
+                }
+            });
+        }
+    }
+
+    return postDiv;
+}
+
+function getStatusEmoji(status) {
+    switch (status) {
+        case 'pending': return '⌛';
+        case 'approved': return '✅';
+        case 'rejected': return '❌';
+        default: return '❓';
     }
 }
 
@@ -371,4 +435,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     loadDashboardData('pending');
+});
+
+// Add event listeners for filter buttons
+document.addEventListener('DOMContentLoaded', () => {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all buttons
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            button.classList.add('active');
+            // Load posts for selected status
+            loadPosts(button.dataset.status);
+        });
+    });
+
+    // Load pending posts by default
+    loadPosts('pending');
 }); 

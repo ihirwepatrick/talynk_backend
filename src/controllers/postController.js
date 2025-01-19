@@ -586,7 +586,6 @@ exports.approvePost = async (req, res) => {
     try {
         const postId = req.params.id;
         const post = await Post.findByPk(postId);
-
         if (!post) {
             return res.status(404).json({
                 status: 'error',
