@@ -30,20 +30,29 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
-app.use('/uploads', express.static('uploads', {
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
     setHeaders: (res, path) => {
         if (path.endsWith('.mp4')) {
             res.set('Content-Type', 'video/mp4');
         }
     }
 }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Set security headers middleware
 app.use((req, res, next) => {
     res.setHeader(
         'Content-Security-Policy',
         "default-src 'self'; style-src 'self' 'unsafe-inline'"
+    );
+    next();
+});
+
+// Add this after your existing middleware
+app.use((req, res, next) => {
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; img-src 'self' data: blob:; media-src 'self' data: blob:; style-src 'self' 'unsafe-inline';"
     );
     next();
 });

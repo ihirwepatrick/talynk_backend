@@ -88,19 +88,68 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
 // Load user's uploads
 async function loadMyUploads() {
     try {
-        const response = await fetch('/api/users/me/posts', {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/test.html';
+            return;
+        }
+
+        const response = await fetch('/api/posts/my-uploads', {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
             }
         });
-        
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
-        const uploadsContainer = document.getElementById('my-uploads');
-        
-        uploadsContainer.innerHTML = data.data.map(post => createMediaCard(post, false)).join('');
+        console.log('Uploads data:', data); // Debug log
+
+        const uploadsContainer = document.getElementById('uploads-container');
+        if (!uploadsContainer) {
+            console.error('Uploads container not found');
+            return;
+        }
+
+        uploadsContainer.innerHTML = '';
+
+        if (data.data && Array.isArray(data.data)) {
+            data.data.forEach(post => {
+                const postElement = createPostElement(post);
+                uploadsContainer.appendChild(postElement);
+            });
+        }
     } catch (error) {
         console.error('Error loading uploads:', error);
     }
+}
+
+function createPostElement(post) {
+    const div = document.createElement('div');
+    div.className = 'post-card';
+
+    const mediaElement = post.mediaType === 'video' 
+        ? `<video src="/uploads/${post.mediaUrl}" controls class="post-media"></video>`
+        : `<img src="/uploads/${post.mediaUrl}" alt="Post media" class="post-media">`;
+
+    div.innerHTML = `
+        <div class="post-header">
+            <h3>${post.title}</h3>
+            <span class="status ${post.status}">${post.status}</span>
+        </div>
+        <div class="media-container">
+            ${mediaElement}
+        </div>
+        <div class="post-info">
+            <p>Category: ${post.category ? post.category.name : 'Uncategorized'}</p>
+            <p>Posted: ${new Date(post.createdAt).toLocaleDateString()}</p>
+        </div>
+    `;
+
+    return div;
 }
 
 // Load pending uploads (admin only)

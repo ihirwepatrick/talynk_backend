@@ -1,82 +1,81 @@
 const { Post, User, Category } = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 50 * 1024 * 1024 // 50MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4'];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type'));
+        }
+    }
+});
 
 exports.createPost = async (req, res) => {
     try {
-        console.log('=== Creating Post ===');
-        console.log('User:', req.user.id);
-        console.log('Request body:', req.body);
-        console.log('File:', req.file);
+        upload.single('media')(req, res, async function(err) {
+            if (err) {
+                console.error('Upload error:', err);
+                return res.status(400).json({
+                    status: 'error',
+                    message: err.message
+                });
+            }
 
-        const { title, caption, categoryId } = req.body;
+            if (!req.file) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'No file uploaded'
+                });
+            }
 
-        // Validate required fields
-        if (!title || !categoryId) {
-            console.log('Missing required fields');
-            return res.status(400).json({
-                status: 'error',
-                message: 'Title and category are required'
+            const { title, categoryId } = req.body;
+            
+            if (!title || !categoryId) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Title and category are required'
+                });
+            }
+
+            const post = await Post.create({
+                title,
+                mediaUrl: req.file.filename,
+                mediaType: req.file.mimetype.startsWith('video/') ? 'video' : 'image',
+                status: 'pending',
+                userId: req.user.id,
+                categoryId
             });
-        }
 
-        if (!req.file) {
-            console.log('No media file provided');
-            return res.status(400).json({
-                status: 'error',
-                message: 'Media file is required'
+            res.status(201).json({
+                status: 'success',
+                data: post
             });
-        }
-
-        // Create the post
-        const post = await Post.create({
-            publicId: uuidv4(),
-            title,
-            caption,
-            mediaUrl: req.file.path.replace(/\\/g, '/'), // Normalize path for Windows
-            mediaType: req.file.mimetype.startsWith('video/') ? 'video' : 'image',
-            status: 'pending',
-            userId: req.user.id,
-            categoryId: parseInt(categoryId)
         });
-
-        console.log('Post created successfully:', {
-            id: post.id,
-            title: post.title,
-            mediaUrl: post.mediaUrl,
-            userId: post.userId,
-            categoryId: post.categoryId
-        });
-
-        // Fetch the created post with associations
-        const createdPost = await Post.findByPk(post.id, {
-            include: [
-                {
-                    model: User,
-                    as: 'author',
-                    attributes: ['id', 'username']
-                },
-                {
-                    model: Category,
-                    as: 'category'
-                }
-            ]
-        });
-
-        console.log('Fetched created post with associations:', createdPost);
-
-        res.status(201).json({
-            status: 'success',
-            message: 'Post created successfully',
-            data: createdPost
-        });
-
     } catch (error) {
         console.error('Error creating post:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error creating post',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Error creating post'
         });
     }
 };
