@@ -47,42 +47,77 @@ async function loadCategories() {
     }
 }
 
-// Handle media upload
-document.getElementById('upload-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+// Update the upload functionality
+async function handleUpload(event) {
+    event.preventDefault();
     
-    const formData = new FormData();
-    formData.append('title', document.getElementById('title').value);
-    formData.append('description', document.getElementById('description').value);
-    formData.append('categoryId', document.getElementById('category').value);
-    
-    const mediaFile = document.getElementById('media').files[0];
-    if (mediaFile) {
-        formData.append('media', mediaFile);
-    }
-
     try {
+        const formData = new FormData();
+        const title = document.getElementById('post-title').value;
+        const category = document.getElementById('category-select').value;
+        const mediaFile = document.getElementById('media-file').files[0];
+
+        // Validation
+        if (!title || !category || !mediaFile) {
+            alert('Please fill in all fields and select a file');
+            return;
+        }
+
+        console.log('Uploading:', { title, category, mediaFile }); // Debug log
+
+        formData.append('title', title);
+        formData.append('categoryId', category);
+        formData.append('media', mediaFile);
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/test.html';
+            return;
+        }
+
         const response = await fetch('/api/posts', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${token}`
             },
-            body: formData
+            body: formData // Don't set Content-Type header when using FormData
         });
 
-        const data = await response.json();
-        if (response.ok) {
-            alert('Upload successful!');
-            loadMyUploads();
-            e.target.reset();
-            document.getElementById('media-preview').innerHTML = '';
-        } else {
-            alert('Upload failed: ' + data.message);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Upload failed');
         }
+
+        const data = await response.json();
+        console.log('Upload successful:', data);
+
+        // Clear form
+        document.getElementById('upload-form').reset();
+        
+        // Show success message
+        alert('Upload successful! Waiting for approval.');
+        
+        // Reload uploads
+        loadMyUploads();
+
     } catch (error) {
         console.error('Error uploading media:', error);
-        alert('Upload failed: ' + error.message);
+        alert('Error uploading media: ' + error.message);
     }
+}
+
+// Add form submit listener
+document.addEventListener('DOMContentLoaded', () => {
+    const uploadForm = document.getElementById('upload-form');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', handleUpload);
+    }
+
+    // Load categories for select
+    loadCategories();
+    
+    // Load existing uploads
+    loadMyUploads();
 });
 
 // Load user's uploads
@@ -96,8 +131,7 @@ async function loadMyUploads() {
 
         const response = await fetch('/api/posts/my-uploads', {
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json'
+                'Authorization': `Bearer ${token}`
             }
         });
 
@@ -106,9 +140,8 @@ async function loadMyUploads() {
         }
 
         const data = await response.json();
-        console.log('Uploads data:', data); // Debug log
-
         const uploadsContainer = document.getElementById('uploads-container');
+        
         if (!uploadsContainer) {
             console.error('Uploads container not found');
             return;
@@ -117,6 +150,11 @@ async function loadMyUploads() {
         uploadsContainer.innerHTML = '';
 
         if (data.data && Array.isArray(data.data)) {
+            if (data.data.length === 0) {
+                uploadsContainer.innerHTML = '<p class="no-uploads">No uploads yet</p>';
+                return;
+            }
+
             data.data.forEach(post => {
                 const postElement = createPostElement(post);
                 uploadsContainer.appendChild(postElement);
@@ -124,6 +162,10 @@ async function loadMyUploads() {
         }
     } catch (error) {
         console.error('Error loading uploads:', error);
+        const uploadsContainer = document.getElementById('uploads-container');
+        if (uploadsContainer) {
+            uploadsContainer.innerHTML = '<p class="error">Error loading uploads</p>';
+        }
     }
 }
 

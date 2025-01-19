@@ -19,36 +19,31 @@
         <!-- User Section -->
         <div id="user-section">
             <h2>Upload New Video/Image</h2>
-            <form id="upload-form">
+            <form id="upload-form" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label for="title">Title:</label>
-                    <input type="text" id="title" name="title" required>
+                    <label for="post-title">Title</label>
+                    <input type="text" id="post-title" name="title" required>
                 </div>
-
+                
                 <div class="form-group">
-                    <label for="description">Description:</label>
-                    <textarea id="description" name="description" required></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="category">Category:</label>
-                    <select id="category" name="categoryId" required>
+                    <label for="category-select">Category</label>
+                    <select id="category-select" name="categoryId" required>
+                        <option value="">Select a category</option>
                         <!-- Categories will be loaded dynamically -->
                     </select>
                 </div>
-
+                
                 <div class="form-group">
-                    <label for="media">Upload Media:</label>
-                    <input type="file" id="media" name="media" accept="image/*,video/*" required>
-                    <div id="media-preview"></div>
+                    <label for="media-file">Upload Media (Image/Video)</label>
+                    <input type="file" id="media-file" name="media" accept="image/*,video/*" required>
                 </div>
-
+                
                 <button type="submit">Upload</button>
             </form>
 
             <h2>My Uploads</h2>
-            <div id="my-uploads" class="media-grid">
-                <!-- User's uploads will be displayed here -->
+            <div id="uploads-container" class="uploads-grid">
+                <!-- Uploads will be loaded here -->
             </div>
         </div>
 
