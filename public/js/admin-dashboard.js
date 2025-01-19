@@ -30,7 +30,13 @@ async function loadPosts(status = 'pending') {
 
         const data = await response.json();
         const postsContainer = document.getElementById('posts-container');
-        postsContainer.innerHTML = ''; // Clear existing posts
+        
+        if (!postsContainer) {
+            console.error('Posts container not found');
+            return;
+        }
+
+        postsContainer.innerHTML = '';
 
         if (data.data && Array.isArray(data.data)) {
             data.data.forEach(post => {
@@ -111,7 +117,7 @@ function getStatusEmoji(status) {
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = '/test.html';
+        window.location.href = '/login.html';
         return;
     }
     
@@ -264,7 +270,7 @@ function createPostCard(post) {
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = '/test.html';
+        window.location.href = '/login.html';
         return;
     }
     loadDashboardData();

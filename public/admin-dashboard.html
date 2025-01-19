@@ -7,50 +7,37 @@
     <link rel="stylesheet" href="/css/admin-dashboard.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-brand">👨‍💼 Admin Dashboard</div>
-        <div class="nav-links">
-            <span id="admin-name"></span>
-            <button id="logout-btn">🚪 Logout</button>
-        </div>
-    </nav>
-
     <div class="dashboard-container">
-        <!-- Stats Cards -->
-        <div class="stats-container">
+        <!-- Stats Section -->
+        <div class="stats-section">
             <div class="stat-card">
                 <h3>📊 Total Posts</h3>
-                <p id="total-count">0</p>
+                <span id="total-count">0</span>
             </div>
             <div class="stat-card">
                 <h3>⌛ Pending</h3>
-                <p id="pending-count">0</p>
+                <span id="pending-count">0</span>
             </div>
             <div class="stat-card">
                 <h3>✅ Approved</h3>
-                <p id="approved-count">0</p>
+                <span id="approved-count">0</span>
             </div>
             <div class="stat-card">
                 <h3>❌ Rejected</h3>
-                <p id="rejected-count">0</p>
+                <span id="rejected-count">0</span>
             </div>
         </div>
 
-        <!-- Posts Section -->
-        <div class="posts-section">
-            <div class="posts-header">
-                <h2>Posts Management</h2>
-                <div class="filters">
-                    <button class="filter-btn active" data-status="pending">⌛ Pending</button>
-                    <button class="filter-btn" data-status="approved">✅ Approved</button>
-                    <button class="filter-btn" data-status="rejected">❌ Rejected</button>
-                </div>
-            </div>
+        <!-- Filter Buttons -->
+        <div class="filter-section">
+            <button class="filter-btn active" data-status="pending">⌛ Pending</button>
+            <button class="filter-btn" data-status="approved">✅ Approved</button>
+            <button class="filter-btn" data-status="rejected">❌ Rejected</button>
+        </div>
 
-            <!-- Posts Container -->
-            <div id="posts-container" class="posts-grid">
-                <!-- Posts will be dynamically added here -->
-            </div>
+        <!-- Posts Container -->
+        <div id="posts-container" class="posts-grid">
+            <!-- Posts will be dynamically added here -->
         </div>
     </div>
 
