@@ -459,4 +459,207 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load pending posts by default
     loadPosts('pending');
-}); 
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/test.html';
+        return;
+    }
+
+    // Set up tab switching
+    setupTabs();
+    
+    // Load initial data
+    loadStats();
+    loadPosts();
+    loadUsers();
+
+    // Set up filters
+    setupFilters();
+});
+
+function setupTabs() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            button.classList.add('active');
+            document.getElementById(`${button.dataset.tab}-tab`).classList.add('active');
+        });
+    });
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/admin/dashboard', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        const data = await response.json();
+        
+        document.getElementById('total-count').textContent = data.data.stats.total || 0;
+        document.getElementById('pending-count').textContent = data.data.stats.pending || 0;
+        document.getElementById('approved-count').textContent = data.data.stats.approved || 0;
+        document.getElementById('rejected-count').textContent = data.data.stats.rejected || 0;
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+async function loadPosts(status = 'all') {
+    try {
+        const response = await fetch(`/api/admin/posts?status=${status}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        const data = await response.json();
+        
+        const tableBody = document.getElementById('posts-table-body');
+        tableBody.innerHTML = '';
+
+        data.data.forEach(post => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${post.id}</td>
+                <td>${post.title}</td>
+                <td>${post.author ? post.author.username : 'Unknown'}</td>
+                <td>${post.category ? post.category.name : 'Uncategorized'}</td>
+                <td>
+                    ${post.mediaType === 'video' 
+                        ? `<video width="100" height="60" controls><source src="/uploads/${post.mediaUrl}" type="video/mp4"></video>`
+                        : `<img src="/uploads/${post.mediaUrl}" width="100" height="60" alt="Post media">`
+                    }
+                </td>
+                <td><span class="status-badge ${post.status}">${post.status}</span></td>
+                <td>${new Date(post.createdAt).toLocaleDateString()}</td>
+                <td>
+                    ${post.status === 'pending' ? `
+                        <button onclick="handleApprove(${post.id})" class="action-btn approve">✅</button>
+                        <button onclick="handleReject(${post.id})" class="action-btn reject">❌</button>
+                    ` : ''}
+                    <button onclick="handleDelete(${post.id})" class="action-btn delete">🗑️</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading posts:', error);
+    }
+}
+
+async function loadUsers() {
+    try {
+        const response = await fetch('/api/admin/users', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        const data = await response.json();
+        
+        const tableBody = document.getElementById('users-table-body');
+        tableBody.innerHTML = '';
+
+        data.data.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.username}</td>
+                <td><span class="role-badge ${user.role}">${user.role}</span></td>
+                <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                <td>${user.postsCount || 0}</td>
+                <td>
+                    ${user.role !== 'admin' ? `
+                        <button onclick="handleRoleToggle(${user.id})" class="action-btn">👑</button>
+                    ` : ''}
+                    <button onclick="handleUserDelete(${user.id})" class="action-btn delete">🗑️</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+}
+
+function setupFilters() {
+    // Status filter for posts
+    document.getElementById('status-filter').addEventListener('change', (e) => {
+        loadPosts(e.target.value);
+    });
+
+    // Search filter for posts
+    document.getElementById('search-posts').addEventListener('input', debounce((e) => {
+        // Implement post search
+    }, 300));
+
+    // Role filter for users
+    document.getElementById('role-filter').addEventListener('change', (e) => {
+        // Implement role filter
+    });
+
+    // Search filter for users
+    document.getElementById('search-users').addEventListener('input', debounce((e) => {
+        // Implement user search
+    }, 300));
+}
+
+// Utility function for debouncing
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Action handlers
+async function handleApprove(postId) {
+    try {
+        const response = await fetch(`/api/posts/${postId}/approve`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        if (response.ok) {
+            loadStats();
+            loadPosts(document.getElementById('status-filter').value);
+        }
+    } catch (error) {
+        console.error('Error approving post:', error);
+    }
+}
+
+async function handleReject(postId) {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return;
+
+    try {
+        const response = await fetch(`/api/posts/${postId}/reject`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+        });
+        if (response.ok) {
+            loadStats();
+            loadPosts(document.getElementById('status-filter').value);
+        }
+    } catch (error) {
+        console.error('Error rejecting post:', error);
+    }
+} 
