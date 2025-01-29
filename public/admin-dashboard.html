@@ -28,16 +28,71 @@
             </div>
         </div>
 
-        <!-- Filter Buttons -->
-        <div class="filter-section">
-            <button class="filter-btn active" data-status="pending">⌛ Pending</button>
-            <button class="filter-btn" data-status="approved">✅ Approved</button>
-            <button class="filter-btn" data-status="rejected">❌ Rejected</button>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="posts">📝 Posts</button>
+            <button class="tab-btn" data-tab="users">👥 Users</button>
         </div>
 
-        <!-- Posts Container -->
-        <div id="posts-container" class="posts-grid">
-            <!-- Posts will be dynamically added here -->
+        <!-- Posts Table Section -->
+        <div id="posts-tab" class="tab-content active">
+            <div class="table-filters">
+                <select id="status-filter">
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+                <input type="text" id="search-posts" placeholder="Search posts...">
+            </div>
+            <div class="table-container">
+                <table id="posts-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                            <th>Media</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="posts-table-body">
+                        <!-- Posts will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users Table Section -->
+        <div id="users-tab" class="tab-content">
+            <div class="table-filters">
+                <select id="role-filter">
+                    <option value="all">All Roles</option>
+                    <option value="user">Users</option>
+                    <option value="admin">Admins</option>
+                </select>
+                <input type="text" id="search-users" placeholder="Search users...">
+            </div>
+            <div class="table-container">
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Join Date</th>
+                            <th>Posts Count</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <!-- Users will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
