@@ -1,7 +1,7 @@
 'use strict';
-const { Model } = require('sequelize');
+const { Model, DataTypes } = require('sequelize');
 
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
   class Post extends Model {
     static associate(models) {
       Post.belongsTo(models.User, {
@@ -15,11 +15,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   
-  Post.init({
-    publicId: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true
+  const Post = sequelize.define('Post', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
     },
     title: {
       type: DataTypes.STRING,
@@ -37,9 +37,27 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('image', 'video'),
       allowNull: false
     },
+    mediaMetadata: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {}
+      // For videos: { duration, size, format }
+    },
     status: {
       type: DataTypes.ENUM('pending', 'approved', 'rejected'),
       defaultValue: 'pending'
+    },
+    approvedAt: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    approverId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
     },
     rejectionReason: {
       type: DataTypes.TEXT,
@@ -53,9 +71,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     }
-  }, {
-    sequelize,
-    modelName: 'Post',
   });
   
   return Post;

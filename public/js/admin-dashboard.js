@@ -527,19 +527,76 @@ async function loadPosts(status = 'all') {
 
         data.data.forEach(post => {
             const row = document.createElement('tr');
+            
+            // Format engagement data
+            const engagement = {
+                likes: post.likes?.length || 0,
+                comments: post.comments?.length || 0,
+                shares: post.shares?.length || 0,
+                views: post.views?.length || 0
+            };
+
+            // Format comments data
+            const commentsData = post.comments?.map(comment => ({
+                user: comment.user.username,
+                date: new Date(comment.createdAt).toLocaleDateString(),
+                text: comment.text
+            })) || [];
+
+            // Format shares data
+            const sharesData = post.shares?.map(share => ({
+                user: share.user.username,
+                date: new Date(share.createdAt).toLocaleDateString()
+            })) || [];
+
+            // Calculate video length if it's a video
+            const videoLength = post.mediaType === 'video' ? post.mediaMetadata?.duration || 'N/A' : 'N/A';
+
             row.innerHTML = `
                 <td>${post.id}</td>
                 <td>${post.title}</td>
-                <td>${post.author ? post.author.username : 'Unknown'}</td>
-                <td>${post.category ? post.category.name : 'Uncategorized'}</td>
+                <td>${post.caption || 'No caption'}</td>
                 <td>
                     ${post.mediaType === 'video' 
                         ? `<video width="100" height="60" controls><source src="/uploads/${post.mediaUrl}" type="video/mp4"></video>`
                         : `<img src="/uploads/${post.mediaUrl}" width="100" height="60" alt="Post media">`
                     }
                 </td>
+                <td>${videoLength}</td>
+                <td>${post.author ? post.author.username : 'Unknown'}</td>
+                <td>${post.category ? post.category.name : 'Uncategorized'}</td>
                 <td><span class="status-badge ${post.status}">${post.status}</span></td>
-                <td>${new Date(post.createdAt).toLocaleDateString()}</td>
+                <td>${post.approver ? post.approver.username : 'N/A'}</td>
+                <td>${post.approvedAt ? new Date(post.approvedAt).toLocaleDateString() : 'N/A'}</td>
+                <td>
+                    <div class="engagement-stats">
+                        <span title="Likes">👍 ${engagement.likes}</span>
+                        <span title="Comments">💬 ${engagement.comments}</span>
+                        <span title="Shares">🔄 ${engagement.shares}</span>
+                        <span title="Views">👁️ ${engagement.views}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="comments-preview" onclick="showCommentsDetail(${JSON.stringify(commentsData)})">
+                        ${commentsData.length > 0 
+                            ? `Latest: ${commentsData[0].user} - ${commentsData[0].date}`
+                            : 'No comments'
+                        }
+                    </div>
+                </td>
+                <td>
+                    <div class="shares-preview" onclick="showSharesDetail(${JSON.stringify(sharesData)})">
+                        ${sharesData.length > 0
+                            ? `${sharesData.length} shares`
+                            : 'No shares'
+                        }
+                    </div>
+                </td>
+                <td>
+                    <div class="views-count">
+                        ${post.views?.length || 0} views
+                    </div>
+                </td>
                 <td>
                     ${post.status === 'pending' ? `
                         <button onclick="handleApprove(${post.id})" class="action-btn approve">✅</button>
@@ -624,42 +681,46 @@ function debounce(func, wait) {
     };
 }
 
-// Action handlers
-async function handleApprove(postId) {
-    try {
-        const response = await fetch(`/api/posts/${postId}/approve`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-        if (response.ok) {
-            loadStats();
-            loadPosts(document.getElementById('status-filter').value);
-        }
-    } catch (error) {
-        console.error('Error approving post:', error);
-    }
+// Add functions to show detailed modals
+function showCommentsDetail(comments) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Comments</h3>
+            <div class="comments-list">
+                ${comments.map(comment => `
+                    <div class="comment">
+                        <div class="comment-header">
+                            <strong>${comment.user}</strong>
+                            <span>${comment.date}</span>
+                        </div>
+                        <div class="comment-text">${comment.text}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()">Close</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
 
-async function handleReject(postId) {
-    const reason = prompt('Enter rejection reason:');
-    if (!reason) return;
-
-    try {
-        const response = await fetch(`/api/posts/${postId}/reject`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ reason })
-        });
-        if (response.ok) {
-            loadStats();
-            loadPosts(document.getElementById('status-filter').value);
-        }
-    } catch (error) {
-        console.error('Error rejecting post:', error);
-    }
+function showSharesDetail(shares) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Shares</h3>
+            <div class="shares-list">
+                ${shares.map(share => `
+                    <div class="share">
+                        <strong>${share.user}</strong>
+                        <span>${share.date}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()">Close</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
 } 

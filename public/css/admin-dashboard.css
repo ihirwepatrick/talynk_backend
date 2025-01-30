@@ -527,4 +527,89 @@ th {
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
+}
+
+/* Add styles for engagement stats and modals */
+.engagement-stats {
+    display: flex;
+    gap: 8px;
+    font-size: 0.9em;
+}
+
+.engagement-stats span {
+    white-space: nowrap;
+}
+
+.comments-preview, .shares-preview {
+    cursor: pointer;
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.comments-list, .shares-list {
+    margin: 15px 0;
+}
+
+.comment {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.comment-text {
+    color: #666;
+}
+
+.share {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+/* Make table scrollable horizontally */
+.table-container {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+/* Ensure table cells don't wrap unnecessarily */
+td, th {
+    white-space: nowrap;
+    min-width: 100px;
+}
+
+/* Allow certain columns to wrap */
+td:nth-child(3), /* Caption */
+td:nth-child(12), /* Comments */
+td:nth-child(13) /* Shares */ {
+    white-space: normal;
+    min-width: 150px;
 } 

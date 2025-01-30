@@ -48,7 +48,44 @@ Object.keys(db).forEach(modelName => {
   }
 });
 
+// Define associations
+const models = {
+  User: require('./User')(sequelize),
+  Post: require('./Post')(sequelize),
+  Category: require('./Category')(sequelize),
+  Like: require('./Like')(sequelize),
+  Comment: require('./Comment')(sequelize),
+  Share: require('./Share')(sequelize),
+  View: require('./View')(sequelize)
+};
+
+// User - Post associations
+models.User.hasMany(models.Post, { as: 'posts', foreignKey: 'userId' });
+models.Post.belongsTo(models.User, { as: 'author', foreignKey: 'userId' });
+models.Post.belongsTo(models.User, { as: 'approver', foreignKey: 'approverId' });
+
+// Category - Post associations
+models.Category.hasMany(models.Post, { foreignKey: 'categoryId' });
+models.Post.belongsTo(models.Category, { as: 'category' });
+
+// Engagement associations
+models.Post.hasMany(models.Like, { as: 'likes' });
+models.Like.belongsTo(models.Post);
+models.Like.belongsTo(models.User);
+
+models.Post.hasMany(models.Comment, { as: 'comments' });
+models.Comment.belongsTo(models.Post);
+models.Comment.belongsTo(models.User);
+
+models.Post.hasMany(models.Share, { as: 'shares' });
+models.Share.belongsTo(models.Post);
+models.Share.belongsTo(models.User);
+
+models.Post.hasMany(models.View, { as: 'views' });
+models.View.belongsTo(models.Post);
+models.View.belongsTo(models.User);
+
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-module.exports = db; 
+module.exports = models; 
