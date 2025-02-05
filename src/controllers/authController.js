@@ -4,34 +4,35 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
   try {
-    console.log('Registration request body:', req.body);
-    console.log('Registration file:', req.file);
-
-    const {
-      username,
-      password,
-      primaryPhone,
-      secondaryPhone
-    } = req.body;
-
-    // Validate required fields
-    if (!username || !password || !primaryPhone) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Missing required fields'
-      });
-    }
+    const { username, email, password, phone1, phone2, role } = req.body;
 
     // Check if user exists
-    const existingUser = await User.findOne({
-      where: { username }
-    });
-
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({
         status: 'error',
-        message: 'Username already exists'
+        message: 'Email already registered'
       });
+    }
+
+    // Only admin can create approvers
+    if (role === 'approver') {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Unauthorized to create approver account'
+        });
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const adminUser = await User.findByPk(decoded.id);
+      if (!adminUser || adminUser.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Only admins can create approver accounts'
+        });
+      }
     }
 
     // Hash password
@@ -40,31 +41,21 @@ exports.register = async (req, res) => {
     // Create user
     const user = await User.create({
       username,
+      email,
       password: hashedPassword,
-      primaryPhone,
-      secondaryPhone,
-      faceImageUrl: req.file ? req.file.path : null,
-      isAdmin: false // Ensure new registrations are not admin by default
+      phone1,
+      phone2,
+      role: role || 'user'
     });
-
-    // Generate token
-    const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET || 'your-default-secret-key',
-      { expiresIn: '24h' }
-    );
 
     res.status(201).json({
       status: 'success',
+      message: 'User registered successfully',
       data: {
-        user: {
-          id: user.id,
-          username: user.username,
-          primaryPhone: user.primaryPhone,
-          secondaryPhone: user.secondaryPhone,
-          isAdmin: user.isAdmin // Include isAdmin in response
-        },
-        token
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
       }
     });
 
@@ -72,21 +63,17 @@ exports.register = async (req, res) => {
     console.error('Registration error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error during registration',
-      error: error.message
+      message: 'Error registering user'
     });
   }
 };
 
 exports.login = async (req, res) => {
   try {
-    console.log('Login attempt:', req.body.username);
-    
-    const user = await User.findOne({
-      where: { username: req.body.username },
-      attributes: ['id', 'username', 'password', 'role']
-    });
+    const { email, password, rememberMe } = req.body;
 
+    // Find user
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(401).json({
         status: 'error',
@@ -94,34 +81,46 @@ exports.login = async (req, res) => {
       });
     }
 
-    const isValidPassword = await bcrypt.compare(req.body.password, user.password);
-    
+    // Check if account is frozen
+    if (user.isFrozen) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Account is frozen. Please contact admin.'
+      });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      console.log('Invalid password for user:', req.body.username);
       return res.status(401).json({
         status: 'error',
         message: 'Invalid credentials'
       });
     }
 
+    // Generate token
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: rememberMe ? '30d' : '24h' }
     );
 
-    console.log('Login successful:', {
-      userId: user.id,
-      isAdmin: user.isAdmin
-    });
+    // Update last login device if provided
+    if (req.headers['user-agent']) {
+      await user.update({
+        lastLoginDevice: req.headers['user-agent']
+      });
+    }
 
     res.json({
       status: 'success',
+      message: 'Login successful',
       data: {
         token,
         user: {
           id: user.id,
           username: user.username,
+          email: user.email,
           role: user.role
         }
       }
@@ -131,7 +130,66 @@ exports.login = async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Internal server error'
+      message: 'Error during login'
+    });
+  }
+};
+
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: User,
+          as: 'subscribers',
+          attributes: ['id', 'username']
+        }
+      ]
+    });
+
+    res.json({
+      status: 'success',
+      data: user
+    });
+
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error fetching profile'
+    });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { username, phone1, phone2, selectedCategoryId } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    await user.update({
+      username,
+      phone1,
+      phone2,
+      selectedCategoryId
+    });
+
+    res.json({
+      status: 'success',
+      message: 'Profile updated successfully',
+      data: {
+        username: user.username,
+        phone1: user.phone1,
+        phone2: user.phone2,
+        selectedCategoryId: user.selectedCategoryId
+      }
+    });
+
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error updating profile'
     });
   }
 };

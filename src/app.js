@@ -82,8 +82,7 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     status: 'error',
-    message: 'Something broke!',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: 'Something went wrong!'
   });
 });
 

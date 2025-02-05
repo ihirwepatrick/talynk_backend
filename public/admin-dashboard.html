@@ -4,114 +4,87 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Stats Section -->
-        <div class="stats-section">
-            <div class="stat-card">
-                <h3>📊 Total Posts</h3>
-                <span id="total-count">0</span>
-            </div>
-            <div class="stat-card">
-                <h3>⌛ Pending</h3>
-                <span id="pending-count">0</span>
-            </div>
-            <div class="stat-card">
-                <h3>✅ Approved</h3>
-                <span id="approved-count">0</span>
-            </div>
-            <div class="stat-card">
-                <h3>❌ Rejected</h3>
-                <span id="rejected-count">0</span>
-            </div>
-        </div>
+        <nav class="sidebar">
+            <h2>Admin Panel</h2>
+            <ul>
+                <li><a href="#" data-section="posts">Posts Management</a></li>
+                <li><a href="#" data-section="users">User Management</a></li>
+                <li><a href="#" data-section="approvers">Approvers</a></li>
+                <li><a href="#" data-section="ads">Ads Management</a></li>
+            </ul>
+            <button id="logout-btn">Logout</button>
+        </nav>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="posts">📝 Posts</button>
-            <button class="tab-btn" data-tab="users">👥 Users</button>
-        </div>
+        <main class="content">
+            <!-- Posts Section -->
+            <section id="posts-section" class="dashboard-section">
+                <h3>Posts Management</h3>
+                <div class="filters">
+                    <select id="post-status-filter">
+                        <option value="all">All Posts</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <input type="text" id="post-search" placeholder="Search posts...">
+                </div>
+                <div id="posts-table-container"></div>
+            </section>
 
-        <!-- Posts Table Section -->
-        <div id="posts-tab" class="tab-content active">
-            <div class="table-filters">
-                <select id="status-filter">
-                    <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                </select>
-                <input type="text" id="search-posts" placeholder="Search posts...">
-            </div>
-            <div class="table-container">
-                <table id="posts-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Title</th>
-                            <th>Caption</th>
-                            <th>Media</th>
-                            <th>Length</th>
-                            <th>Author</th>
-                            <th>Category</th>
-                            <th>Status</th>
-                            <th>Approver</th>
-                            <th>Approve Date</th>
-                            <th>Engagement</th>
-                            <th>Comments</th>
-                            <th>Shares</th>
-                            <th>Views</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="posts-table-body">
-                        <!-- Posts will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            <!-- Users Section -->
+            <section id="users-section" class="dashboard-section hidden">
+                <h3>User Management</h3>
+                <div class="filters">
+                    <select id="user-status-filter">
+                        <option value="all">All Users</option>
+                        <option value="active">Active</option>
+                        <option value="frozen">Frozen</option>
+                    </select>
+                    <input type="text" id="user-search" placeholder="Search users...">
+                </div>
+                <div id="users-table-container"></div>
+            </section>
 
-        <!-- Users Table Section -->
-        <div id="users-tab" class="tab-content">
-            <div class="table-filters">
-                <select id="role-filter">
-                    <option value="all">All Roles</option>
-                    <option value="user">Users</option>
-                    <option value="admin">Admins</option>
-                </select>
-                <input type="text" id="search-users" placeholder="Search users...">
-            </div>
-            <div class="table-container">
-                <table id="users-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Role</th>
-                            <th>Join Date</th>
-                            <th>Posts Count</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-table-body">
-                        <!-- Users will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            <!-- Approvers Section -->
+            <section id="approvers-section" class="dashboard-section hidden">
+                <h3>Approvers Management</h3>
+                <button id="add-approver-btn">Add New Approver</button>
+                <div id="approvers-table-container"></div>
+            </section>
+
+            <!-- Ads Section -->
+            <section id="ads-section" class="dashboard-section hidden">
+                <h3>Ads Management</h3>
+                <button id="add-ad-btn">Add New Ad</button>
+                <div id="ads-table-container"></div>
+            </section>
+        </main>
     </div>
 
-    <!-- Rejection Modal -->
-    <div id="rejection-modal" class="modal">
+    <!-- Add Approver Modal -->
+    <div id="add-approver-modal" class="modal">
         <div class="modal-content">
-            <h2>Reject Post</h2>
-            <textarea id="rejection-reason" placeholder="Enter reason for rejection..."></textarea>
-            <div class="modal-buttons">
-                <button id="confirm-reject">Confirm</button>
-                <button id="cancel-reject">Cancel</button>
-            </div>
+            <h3>Add New Approver</h3>
+            <form id="add-approver-form">
+                <div class="form-group">
+                    <label for="approver-username">Username</label>
+                    <input type="text" id="approver-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="approver-email">Email</label>
+                    <input type="email" id="approver-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="approver-password">Password</label>
+                    <input type="password" id="approver-password" required>
+                </div>
+                <button type="submit">Add Approver</button>
+                <button type="button" class="close-modal">Cancel</button>
+            </form>
         </div>
     </div>
 
