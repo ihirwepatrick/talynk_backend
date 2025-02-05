@@ -1,7 +1,7 @@
 'use strict';
 const { Model, DataTypes } = require('sequelize');
 
-module.exports = (sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   class Post extends Model {
     static associate(models) {
       Post.belongsTo(models.User, {
@@ -21,57 +21,68 @@ module.exports = (sequelize) => {
       primaryKey: true,
       autoIncrement: true
     },
+    traceabilityId: {
+      type: DataTypes.STRING,
+      unique: true
+    },
     title: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    caption: {
-      type: DataTypes.TEXT,
+    uploaderId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    approverId: {
+      type: DataTypes.INTEGER,
       allowNull: true
+    },
+    categoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    status: {
+      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+      defaultValue: 'pending'
     },
     mediaUrl: {
       type: DataTypes.STRING,
       allowNull: false
     },
     mediaType: {
-      type: DataTypes.ENUM('image', 'video'),
+      type: DataTypes.STRING,
       allowNull: false
     },
-    mediaMetadata: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      defaultValue: {}
-      // For videos: { duration, size, format }
+    length: {
+      type: DataTypes.INTEGER, // in seconds
+      allowNull: true
     },
-    status: {
-      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-      defaultValue: 'pending'
+    uploadDate: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW
     },
-    approvedAt: {
+    approvedDate: {
       type: DataTypes.DATE,
       allowNull: true
     },
-    approverId: {
+    viewCount: {
       type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'Users',
-        key: 'id'
-      }
+      defaultValue: 0
     },
-    rejectionReason: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    userId: {
+    shareCount: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      defaultValue: 0
     },
-    categoryId: {
+    saveCount: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      defaultValue: 0
     }
   });
   
+  // Generate traceabilityId before creating post
+  Post.beforeCreate(async (post) => {
+    post.traceabilityId = `${post.uploaderId}-${Date.now()}`;
+  });
+
   return Post;
 };

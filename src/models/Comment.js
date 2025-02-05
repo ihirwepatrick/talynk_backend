@@ -26,6 +26,14 @@ module.exports = (sequelize) => {
                 model: 'Posts',
                 key: 'id'
             }
+        },
+        reportCount: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0
+        },
+        commentDate: {
+            type: DataTypes.DATE,
+            defaultValue: DataTypes.NOW
         }
     });
 
