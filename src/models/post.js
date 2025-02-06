@@ -1,88 +1,74 @@
 'use strict';
-const { Model, DataTypes } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class Post extends Model {
-    static associate(models) {
-      Post.belongsTo(models.User, {
-        foreignKey: 'userId',
-        as: 'author'
-      });
-      Post.belongsTo(models.Category, {
-        foreignKey: 'categoryId',
-        as: 'category'
-      });
-    }
-  }
-  
   const Post = sequelize.define('Post', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true
     },
-    traceabilityId: {
-      type: DataTypes.STRING,
-      unique: true
-    },
     title: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    uploaderId: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    approverId: {
-      type: DataTypes.INTEGER,
+    caption: {
+      type: DataTypes.TEXT,
       allowNull: true
-    },
-    categoryId: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    status: {
-      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-      defaultValue: 'pending'
     },
     mediaUrl: {
       type: DataTypes.STRING,
       allowNull: false
     },
     mediaType: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM('image', 'video'),
       allowNull: false
     },
-    length: {
-      type: DataTypes.INTEGER, // in seconds
-      allowNull: true
+    mediaMetadata: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {}
     },
-    uploadDate: {
+    status: {
+      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+      defaultValue: 'pending'
+    },
+    uploaderId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
+    },
+    approverId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
+    },
+    approvedAt: {
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
-    },
-    approvedDate: {
-      type: DataTypes.DATE,
       allowNull: true
-    },
-    viewCount: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0
-    },
-    shareCount: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0
-    },
-    saveCount: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0
     }
-  });
-  
-  // Generate traceabilityId before creating post
-  Post.beforeCreate(async (post) => {
-    post.traceabilityId = `${post.uploaderId}-${Date.now()}`;
+  }, {
+    sequelize,
+    modelName: 'Post',
+    tableName: 'posts',
+    timestamps: true
   });
 
+  Post.associate = function(models) {
+    Post.belongsTo(models.User, {
+      foreignKey: 'uploaderId',
+      as: 'uploader'
+    });
+    Post.belongsTo(models.User, {
+      foreignKey: 'approverId',
+      as: 'approver'
+    });
+  };
+
   return Post;
-};
+}; 
