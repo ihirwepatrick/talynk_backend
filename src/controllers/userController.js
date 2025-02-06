@@ -1,4 +1,77 @@
-const { User } = require('../models');
+const { User, Post, Category } = require('../models');
+
+// Get user profile
+exports.getProfile = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id, {
+            attributes: { exclude: ['password'] },
+            include: [
+                {
+                    model: Category,
+                    as: 'selectedCategory',
+                    attributes: ['id', 'name']
+                }
+            ]
+        });
+
+        // Get user stats
+        const stats = await Post.findAndCountAll({
+            where: { uploaderId: req.user.id },
+            attributes: ['status'],
+            group: ['status']
+        });
+
+        res.json({
+            status: 'success',
+            data: {
+                ...user.toJSON(),
+                stats: {
+                    totalPosts: stats.count,
+                    approvedPosts: stats.rows.find(r => r.status === 'approved')?.count || 0,
+                    pendingPosts: stats.rows.find(r => r.status === 'pending')?.count || 0
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching profile'
+        });
+    }
+};
+
+// Update user profile
+exports.updateProfile = async (req, res) => {
+    try {
+        const { username, phone1, phone2, selectedCategoryId } = req.body;
+        const user = await User.findByPk(req.user.id);
+
+        await user.update({
+            username,
+            phone1,
+            phone2,
+            selectedCategoryId
+        });
+
+        res.json({
+            status: 'success',
+            message: 'Profile updated successfully',
+            data: {
+                username: user.username,
+                phone1: user.phone1,
+                phone2: user.phone2,
+                selectedCategoryId: user.selectedCategoryId
+            }
+        });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error updating profile'
+        });
+    }
+};
 
 exports.getCurrentUser = async (req, res) => {
     try {

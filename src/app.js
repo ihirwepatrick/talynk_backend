@@ -5,10 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const { sequelize } = require('./models');
 const path = require('path');
-const authRoutes = require('./routes/auth');
-const postRoutes = require('./routes/post');
-const categoryRoutes = require('./routes/category');
-const userRoutes = require('./routes/user');
+const routes = require('./routes');
 const { authenticate, isAdmin } = require('./middlewares/auth');
 const adminRoutes = require('./routes/admin');
 
@@ -57,25 +54,30 @@ app.use((req, res, next) => {
     next();
 });
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
-
-// Serve HTML files
+// HTML Routes
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/test.html'));
+    res.sendFile(path.join(__dirname, '../public/login.html'));
 });
 
-app.get('/posts.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/posts.html'));
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/register.html'));
 });
 
-app.get('/admin-dashboard.html', (req, res) => {
+app.get('/admin-dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin-dashboard.html'));
 });
+
+app.get('/user-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/user-dashboard.html'));
+});
+
+app.get('/approver-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/approver-dashboard.html'));
+});
+
+// API routes
+app.use('/api', routes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

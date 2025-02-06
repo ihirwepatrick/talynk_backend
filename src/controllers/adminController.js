@@ -130,4 +130,109 @@ exports.getPosts = async (req, res) => {
             message: 'Error fetching posts'
         });
     }
+};
+
+// Get pending posts
+exports.getPendingPosts = async (req, res) => {
+    try {
+        const posts = await Post.findAll({
+            where: { status: 'pending' },
+            include: [
+                {
+                    model: User,
+                    as: 'uploader',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: Category,
+                    attributes: ['id', 'name']
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            status: 'success',
+            data: { posts }
+        });
+    } catch (error) {
+        console.error('Error getting pending posts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching pending posts'
+        });
+    }
+};
+
+// Update post status (approve/reject)
+exports.updatePostStatus = async (req, res) => {
+    try {
+        const { status, rejectionReason } = req.body;
+        const post = await Post.findByPk(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Post not found'
+            });
+        }
+
+        if (status === 'rejected' && !rejectionReason) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Rejection reason is required'
+            });
+        }
+
+        await post.update({
+            status,
+            rejectionReason: status === 'rejected' ? rejectionReason : null,
+            approverId: req.user.id,
+            approvedAt: status === 'approved' ? new Date() : null
+        });
+
+        res.json({
+            status: 'success',
+            message: `Post ${status} successfully`
+        });
+    } catch (error) {
+        console.error('Error updating post status:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error updating post status'
+        });
+    }
+};
+
+// Get admin dashboard stats
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const stats = await Post.findAndCountAll({
+            attributes: ['status'],
+            group: ['status']
+        });
+
+        const userCount = await User.count();
+        const categoryCount = await Category.count();
+
+        res.json({
+            status: 'success',
+            data: {
+                posts: {
+                    total: stats.count,
+                    pending: stats.rows.find(r => r.status === 'pending')?.count || 0,
+                    approved: stats.rows.find(r => r.status === 'approved')?.count || 0,
+                    rejected: stats.rows.find(r => r.status === 'rejected')?.count || 0
+                },
+                users: userCount,
+                categories: categoryCount
+            }
+        });
+    } catch (error) {
+        console.error('Error getting dashboard stats:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching dashboard stats'
+        });
+    }
 }; 
