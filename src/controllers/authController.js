@@ -4,35 +4,15 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
   try {
-    const { username, email, password, phone1, phone2, role } = req.body;
+    const { username, email, password, phone1, phone2 } = req.body;
 
-    // Check if user exists
+    // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({
         status: 'error',
         message: 'Email already registered'
       });
-    }
-
-    // Only admin can create approvers
-    if (role === 'approver') {
-      const token = req.headers.authorization?.split(' ')[1];
-      if (!token) {
-        return res.status(401).json({
-          status: 'error',
-          message: 'Unauthorized to create approver account'
-        });
-      }
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const adminUser = await User.findByPk(decoded.id);
-      if (!adminUser || adminUser.role !== 'admin') {
-        return res.status(403).json({
-          status: 'error',
-          message: 'Only admins can create approver accounts'
-        });
-      }
     }
 
     // Hash password
@@ -45,20 +25,32 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       phone1,
       phone2,
-      role: role || 'user'
+      role: 'user'
     });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Remove password from response
+    const userResponse = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    };
 
     res.status(201).json({
       status: 'success',
       message: 'User registered successfully',
       data: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role
+        user: userResponse,
+        token
       }
     });
-
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
@@ -81,15 +73,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if account is frozen
-    if (user.isFrozen) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Account is frozen. Please contact admin.'
-      });
-    }
-
-    // Verify password
+    // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({
@@ -102,30 +86,27 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: rememberMe ? '30d' : '24h' }
+      { expiresIn: rememberMe ? '7d' : '24h' }
     );
 
-    // Update last login device if provided
-    if (req.headers['user-agent']) {
-      await user.update({
-        lastLoginDevice: req.headers['user-agent']
-      });
-    }
+    // Update last login
+    await user.update({
+      lastLoginDevice: req.headers['user-agent']
+    });
 
     res.json({
       status: 'success',
       message: 'Login successful',
       data: {
-        token,
         user: {
           id: user.id,
           username: user.username,
           email: user.email,
           role: user.role
-        }
+        },
+        token
       }
     });
-
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
@@ -138,21 +119,13 @@ exports.login = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password'] },
-      include: [
-        {
-          model: User,
-          as: 'subscribers',
-          attributes: ['id', 'username']
-        }
-      ]
+      attributes: { exclude: ['password'] }
     });
 
     res.json({
       status: 'success',
-      data: user
+      data: { user }
     });
-
   } catch (error) {
     console.error('Profile fetch error:', error);
     res.status(500).json({
@@ -164,14 +137,13 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { username, phone1, phone2, selectedCategoryId } = req.body;
+    const { username, phone1, phone2 } = req.body;
     const user = await User.findByPk(req.user.id);
 
     await user.update({
       username,
       phone1,
-      phone2,
-      selectedCategoryId
+      phone2
     });
 
     res.json({
@@ -180,11 +152,9 @@ exports.updateProfile = async (req, res) => {
       data: {
         username: user.username,
         phone1: user.phone1,
-        phone2: user.phone2,
-        selectedCategoryId: user.selectedCategoryId
+        phone2: user.phone2
       }
     });
-
   } catch (error) {
     console.error('Profile update error:', error);
     res.status(500).json({

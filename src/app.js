@@ -81,11 +81,12 @@ app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    status: 'error',
-    message: 'Something went wrong!'
-  });
+    console.error('Error:', err.stack);
+    res.status(500).json({
+        status: 'error',
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
 });
 
 const PORT = process.env.PORT || 3000;
