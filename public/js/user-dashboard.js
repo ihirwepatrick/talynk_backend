@@ -1,14 +1,63 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user'));
+// Load user posts
+async function loadUserPosts() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+            return;
+        }
 
-    if (!token || !user) {
-        window.location.href = '/test.html';
+        const response = await fetch('http://localhost:3000/api/posts/user', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            displayPosts(data.data.posts);
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        console.error('Error loading posts:', error);
+        alert('Error loading posts. Please try again.');
+    }
+}
+
+// Display posts in the UI
+function displayPosts(posts) {
+    const postsContainer = document.getElementById('userPosts');
+    postsContainer.innerHTML = '';
+
+    if (posts.length === 0) {
+        postsContainer.innerHTML = '<p>No posts yet. Create your first post!</p>';
         return;
     }
 
-    document.getElementById('username-display').textContent = user.username;
-    setupEventListeners();
+    posts.forEach(post => {
+        const postElement = document.createElement('div');
+        postElement.className = 'post-card';
+        postElement.innerHTML = `
+            <h3>${post.title}</h3>
+            <p>${post.caption}</p>
+            <div class="post-media">
+                ${post.mediaType === 'image' 
+                    ? `<img src="${post.mediaUrl}" alt="${post.title}">` 
+                    : `<video src="${post.mediaUrl}" controls></video>`
+                }
+            </div>
+            <div class="post-status ${post.status}">
+                Status: ${post.status}
+            </div>
+        `;
+        postsContainer.appendChild(postElement);
+    });
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', () => {
     loadUserPosts();
 });
 
@@ -77,20 +126,6 @@ async function loadAllUserPosts() {
         console.error('Error loading all posts:', error);
         handleError(error);
     }
-}
-
-function displayPosts(containerId, posts) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-
-    if (posts.length === 0) {
-        container.innerHTML = '<div class="no-posts">No posts found</div>';
-        return;
-    }
-
-    posts.forEach(post => {
-        container.appendChild(createPostCard(post));
-    });
 }
 
 function createPostCard(post) {

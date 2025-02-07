@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
 
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
@@ -11,79 +11,87 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-async function handleLogin(e) {
-    e.preventDefault();
-
+async function handleLogin(event) {
+    event.preventDefault();
+    
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const rememberMe = document.getElementById('remember-me').checked;
+    const rememberMe = document.getElementById('rememberMe').checked;
 
     try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch('http://localhost:3000/api/auth/login', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password, rememberMe })
+            body: JSON.stringify({
+                email,
+                password,
+                rememberMe
+            })
         });
 
         const data = await response.json();
 
         if (response.ok) {
+            // Store token
             localStorage.setItem('token', data.data.token);
-            localStorage.setItem('user', JSON.stringify(data.data.user));
-
             // Redirect based on role
-            switch (data.data.user.role) {
-                case 'admin':
-                    window.location.href = '/admin-dashboard.html';
-                    break;
-                case 'approver':
-                    window.location.href = '/approver-dashboard.html';
-                    break;
-                default:
-                    window.location.href = '/user-dashboard.html';
+            if (data.data.user.role === 'admin') {
+                window.location.href = '/admin-dashboard';
+            } else {
+                window.location.href = '/user-dashboard';
             }
         } else {
             alert(data.message);
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Error during login');
+        alert('Error during login. Please try again.');
     }
 }
 
-async function handleRegister(e) {
-    e.preventDefault();
-
-    const formData = {
-        username: document.getElementById('username').value,
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value,
-        phone1: document.getElementById('phone1').value,
-        phone2: document.getElementById('phone2').value
-    };
+async function handleRegister(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const phone1 = document.getElementById('phone1').value;
+    const phone2 = document.getElementById('phone2')?.value || null;
 
     try {
-        const response = await fetch('/api/auth/register', {
+        const response = await fetch('http://localhost:3000/api/auth/register', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify({
+                username,
+                email,
+                password,
+                phone1,
+                phone2
+            })
         });
 
         const data = await response.json();
 
         if (response.ok) {
-            alert('Registration successful! Please login.');
-            window.location.href = '/login.html';
+            // Store token
+            localStorage.setItem('token', data.data.token);
+            // Redirect based on role
+            if (data.data.user.role === 'admin') {
+                window.location.href = '/admin-dashboard';
+            } else {
+                window.location.href = '/user-dashboard';
+            }
         } else {
             alert(data.message);
         }
     } catch (error) {
         console.error('Registration error:', error);
-        alert('Error during registration');
+        alert('Error during registration. Please try again.');
     }
 }
 

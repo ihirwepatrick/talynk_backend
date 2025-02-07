@@ -4,10 +4,25 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
   try {
+    console.log('Registration request received:', req.body);  // Debug log
+
     const { username, email, password, phone1, phone2 } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ where: { email } });
+    // Validate input
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please provide all required fields'
+      });
+    }
+
+    // Check if user exists
+    const existingUser = await User.findOne({
+      where: { 
+        email: email 
+      }
+    });
+
     if (existingUser) {
       return res.status(400).json({
         status: 'error',
@@ -28,34 +43,34 @@ exports.register = async (req, res) => {
       role: 'user'
     });
 
-    // Generate JWT token
+    // Generate token
     const token = jwt.sign(
       { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
-    // Remove password from response
-    const userResponse = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role
-    };
-
+    // Send response
     res.status(201).json({
       status: 'success',
-      message: 'User registered successfully',
+      message: 'Registration successful',
       data: {
-        user: userResponse,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        },
         token
       }
     });
+
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error details:', error);  // Detailed error log
     res.status(500).json({
       status: 'error',
-      message: 'Error registering user'
+      message: 'Registration failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };
