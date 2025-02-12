@@ -1,239 +1,296 @@
+// Global variables
+let currentUser = null;
+const token = localStorage.getItem('token');
+
+// Check authentication
+if (!token) {
+    window.location.href = '/login';
+}
+
+// Initialize dashboard
+async function initializeDashboard() {
+    try {
+        // Load user profile
+        await loadUserProfile();
+        // Load categories for dropdowns
+        await loadCategories();
+        // Load user posts
+        await loadUserPosts();
+        // Load statistics
+        await loadStatistics();
+        // Setup event listeners
+        setupEventListeners();
+    } catch (error) {
+        console.error('Dashboard initialization error:', error);
+        alert('Error loading dashboard');
+    }
+}
+
+// Load user profile
+async function loadUserProfile() {
+    try {
+        const response = await fetch('http://localhost:3000/api/auth/profile', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to load profile');
+
+        const data = await response.json();
+        currentUser = data.data.user;
+
+        // Update UI with user data
+        document.getElementById('userName').textContent = currentUser.username;
+        document.getElementById('username').value = currentUser.username;
+        document.getElementById('phone1').value = currentUser.phone1 || '';
+        document.getElementById('phone2').value = currentUser.phone2 || '';
+        
+        if (currentUser.facialImage) {
+            document.getElementById('userAvatar').src = currentUser.facialImage;
+        }
+    } catch (error) {
+        console.error('Profile loading error:', error);
+    }
+}
+
+// Load categories
+async function loadCategories() {
+    try {
+        const response = await fetch('http://localhost:3000/api/categories', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to load categories');
+
+        const data = await response.json();
+        const categories = data.data.categories;
+
+        // Update category dropdowns
+        const categorySelects = ['category'];
+        categorySelects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Select Category</option>';
+            categories.forEach(category => {
+                select.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+            });
+        });
+    } catch (error) {
+        console.error('Categories loading error:', error);
+    }
+}
+
 // Load user posts
 async function loadUserPosts() {
     try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/login';
-            return;
-        }
-
         const response = await fetch('http://localhost:3000/api/posts/user', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-            displayPosts(data.data.posts);
-        } else {
-            alert(data.message);
-        }
-    } catch (error) {
-        console.error('Error loading posts:', error);
-        alert('Error loading posts. Please try again.');
-    }
-}
-
-// Display posts in the UI
-function displayPosts(posts) {
-    const postsContainer = document.getElementById('userPosts');
-    postsContainer.innerHTML = '';
-
-    if (posts.length === 0) {
-        postsContainer.innerHTML = '<p>No posts yet. Create your first post!</p>';
-        return;
-    }
-
-    posts.forEach(post => {
-        const postElement = document.createElement('div');
-        postElement.className = 'post-card';
-        postElement.innerHTML = `
-            <h3>${post.title}</h3>
-            <p>${post.caption}</p>
-            <div class="post-media">
-                ${post.mediaType === 'image' 
-                    ? `<img src="${post.mediaUrl}" alt="${post.title}">` 
-                    : `<video src="${post.mediaUrl}" controls></video>`
-                }
-            </div>
-            <div class="post-status ${post.status}">
-                Status: ${post.status}
-            </div>
-        `;
-        postsContainer.appendChild(postElement);
-    });
-}
-
-// Initialize dashboard
-document.addEventListener('DOMContentLoaded', () => {
-    loadUserPosts();
-});
-
-function setupEventListeners() {
-    document.querySelectorAll('.tab-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            document.querySelectorAll('.posts-grid').forEach(grid => grid.classList.remove('active'));
-            if (button.dataset.tab === 'pending') {
-                document.getElementById('pending-posts').classList.add('active');
-                loadPendingPosts();
-            } else {
-                document.getElementById('all-posts').classList.add('active');
-                loadAllUserPosts();
-            }
-        });
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        localStorage.clear();
-        window.location.href = '/test.html';
-    });
-}
-
-async function loadPendingPosts() {
-    try {
-        const response = await fetch('/api/posts/user/pending', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
+        if (!response.ok) throw new Error('Failed to load posts');
 
         const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to fetch posts');
+        const posts = data.data.posts;
+
+        // Update posts grid
+        const postsGrid = document.getElementById('userPosts');
+        postsGrid.innerHTML = '';
+
+        if (posts.length === 0) {
+            postsGrid.innerHTML = '<p>No posts yet. Create your first post!</p>';
+            return;
         }
 
-        displayPosts('pending-posts', data.data);
-
-    } catch (error) {
-        console.error('Error loading pending posts:', error);
-        handleError(error);
-    }
-}
-
-async function loadAllUserPosts() {
-    try {
-        const response = await fetch('/api/posts/user/all', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+        posts.forEach(post => {
+            const postCard = createPostCard(post);
+            postsGrid.appendChild(postCard);
         });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to fetch posts');
-        }
-
-        displayPosts('all-posts', data.data);
-
     } catch (error) {
-        console.error('Error loading all posts:', error);
-        handleError(error);
+        console.error('Posts loading error:', error);
     }
 }
 
+// Create post card element
 function createPostCard(post) {
-    const div = document.createElement('div');
-    div.className = 'post-card';
-    
-    const mediaElement = post.mediaType === 'video'
-        ? `<video class="post-media" controls><source src="${post.mediaUrl}" type="video/mp4"></video>`
-        : `<img src="${post.mediaUrl}" class="post-media" alt="${post.title}">`;
-
-    div.innerHTML = `
-        ${mediaElement}
-        <div class="post-content">
-            <div class="post-header">
-                <div class="post-title">${post.title}</div>
-                <div class="post-status status-${post.status}">
-                    ${post.status.toUpperCase()}
-                </div>
-            </div>
-            <div class="post-meta">
-                <div class="category">
-                    <i class="fas fa-folder"></i> ${post.category ? post.category.name : 'Uncategorized'}
-                </div>
-                <div class="date">
-                    <i class="fas fa-calendar"></i> ${new Date(post.createdAt).toLocaleDateString()}
-                </div>
-            </div>
-            ${post.rejectionReason ? `
-                <div class="rejection-reason">
-                    <i class="fas fa-exclamation-circle"></i> Rejection Reason: ${post.rejectionReason}
-                </div>
-            ` : ''}
-            <div class="post-actions">
-                ${post.status === 'pending' ? `
-                    <button class="cancel-btn" data-post-id="${post.id}">
-                        <i class="fas fa-times"></i> Cancel Post
-                    </button>
-                ` : ''}
-                <button class="delete-btn" data-post-id="${post.id}">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </div>
-        </div>
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `
+        <h3>${post.title}</h3>
+        <p>${post.caption}</p>
+        ${post.mediaType === 'image' 
+            ? `<img src="${post.mediaUrl}" alt="${post.title}" style="max-width: 100%;">` 
+            : `<video src="${post.mediaUrl}" controls style="max-width: 100%;"></video>`
+        }
+        <p class="status ${post.status}">Status: ${post.status}</p>
+        ${post.status === 'rejected' ? `<p class="rejection-reason">Reason: ${post.rejectionReason}</p>` : ''}
+        <button onclick="deletePost(${post.id})" class="delete-btn">Delete</button>
     `;
-
-    // Add event listeners
-    const cancelBtn = div.querySelector('.cancel-btn');
-    const deleteBtn = div.querySelector('.delete-btn');
-
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => handleCancelPost(post.id));
-    }
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => handleDeletePost(post.id));
-    }
-    
-    return div;
+    return card;
 }
 
-async function handleCancelPost(postId) {
-    if (!confirm('Are you sure you want to cancel this post?')) return;
-
+// Load statistics
+async function loadStatistics() {
     try {
-        const response = await fetch(`/api/posts/${postId}`, {
-            method: 'DELETE',
+        const response = await fetch('http://localhost:3000/api/users/stats', {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${token}`
             }
         });
 
-        if (!response.ok) throw new Error('Failed to cancel post');
+        if (!response.ok) throw new Error('Failed to load statistics');
 
-        loadUserPosts(); // Refresh the posts
-        alert('Post cancelled successfully');
+        const data = await response.json();
+        const stats = data.data.stats;
 
+        // Update statistics
+        document.getElementById('totalPosts').textContent = stats.totalPosts;
+        document.getElementById('approvedPosts').textContent = stats.approvedPosts;
+        document.getElementById('pendingPosts').textContent = stats.pendingPosts;
     } catch (error) {
-        console.error('Error cancelling post:', error);
-        alert('Error cancelling post');
+        console.error('Statistics loading error:', error);
     }
 }
 
-async function handleDeletePost(postId) {
-    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) return;
+// Handle tab switching
+function switchTab(tabId) {
+    // Hide all sections
+    document.querySelectorAll('.section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Show selected section
+    document.getElementById(`${tabId}Section`).style.display = 'block';
+    
+    // Update active tab
+    document.querySelectorAll('.nav-menu a').forEach(link => {
+        link.classList.remove('active');
+    });
+    document.querySelector(`[data-section="${tabId}"]`).classList.add('active');
+}
+
+// Handle create post
+async function handleCreatePost(event) {
+    event.preventDefault();
+
+    const formData = new FormData();
+    formData.append('title', document.getElementById('title').value);
+    formData.append('caption', document.getElementById('caption').value);
+    formData.append('categoryId', document.getElementById('category').value);
+    formData.append('media', document.getElementById('media').files[0]);
 
     try {
-        const response = await fetch(`/api/posts/${postId}`, {
+        const response = await fetch('http://localhost:3000/api/posts', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Failed to create post');
+
+        alert('Post created successfully!');
+        document.getElementById('createPostForm').reset();
+        await loadUserPosts();
+        switchTab('posts');
+    } catch (error) {
+        console.error('Post creation error:', error);
+        alert('Error creating post');
+    }
+}
+
+// Handle profile update
+async function handleProfileUpdate(event) {
+    event.preventDefault();
+
+    const formData = {
+        username: document.getElementById('username').value,
+        phone1: document.getElementById('phone1').value,
+        phone2: document.getElementById('phone2').value
+    };
+
+    try {
+        const response = await fetch('http://localhost:3000/api/users/profile', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) throw new Error('Failed to update profile');
+
+        alert('Profile updated successfully!');
+        await loadUserProfile();
+    } catch (error) {
+        console.error('Profile update error:', error);
+        alert('Error updating profile');
+    }
+}
+
+// Delete post
+async function deletePost(postId) {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+
+    try {
+        const response = await fetch(`http://localhost:3000/api/posts/${postId}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${token}`
             }
         });
 
         if (!response.ok) throw new Error('Failed to delete post');
 
-        loadUserPosts(); // Refresh the posts
-        alert('Post deleted successfully');
-
+        alert('Post deleted successfully!');
+        await loadUserPosts();
     } catch (error) {
-        console.error('Error deleting post:', error);
+        console.error('Post deletion error:', error);
         alert('Error deleting post');
     }
 }
 
-function handleError(error) {
-    if (error.message.includes('401') || error.message.includes('403')) {
-        alert('Session expired. Please login again.');
-        window.location.href = '/test.html';
-    } else {
-        alert('Error: ' + error.message);
-    }
-} 
+// Setup event listeners
+function setupEventListeners() {
+    // Tab switching
+    document.querySelectorAll('.nav-menu a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchTab(e.target.dataset.section);
+        });
+    });
+
+    // Form submissions
+    document.getElementById('createPostForm').addEventListener('submit', handleCreatePost);
+    document.getElementById('profileForm').addEventListener('submit', handleProfileUpdate);
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    });
+
+    // Media preview
+    document.getElementById('media').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        const preview = document.getElementById('mediaPreview');
+        
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = file.type.startsWith('image/')
+                    ? `<img src="${e.target.result}" style="max-width: 200px;">`
+                    : `<video src="${e.target.result}" style="max-width: 200px;" controls>`;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// Initialize dashboard when page loads
+document.addEventListener('DOMContentLoaded', initializeDashboard); 
