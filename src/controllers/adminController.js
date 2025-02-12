@@ -1,4 +1,5 @@
-const { Post, User, Category, Like, Comment, Share, View } = require('../models');
+const { Post, User, Category, Like, Comment, Share, View, Admin, Approver, AccountManagement, Ad } = require('../models');
+const bcrypt = require('bcryptjs');
 
 exports.getDashboardData = async (req, res) => {
     try {
@@ -233,6 +234,111 @@ exports.getDashboardStats = async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Error fetching dashboard stats'
+        });
+    }
+};
+
+exports.registerApprover = async (req, res) => {
+    try {
+        const adminUsername = req.user.username;
+        const { username, email, password, phone1, phone2 } = req.body;
+
+        // Check admin permissions
+        const admin = await Admin.findByPk(adminUsername);
+        if (!admin.can_register_approvers) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Not authorized to register approvers'
+            });
+        }
+
+        // Create user first
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await User.create({
+            username,
+            email,
+            password: hashedPassword,
+            phone1,
+            phone2
+        });
+
+        // Create approver
+        await Approver.create({
+            username: user.username
+        });
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Approver registered successfully'
+        });
+    } catch (error) {
+        console.error('Approver registration error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error registering approver'
+        });
+    }
+};
+
+exports.manageAccount = async (req, res) => {
+    try {
+        const adminUsername = req.user.username;
+        const { username, action } = req.body;
+
+        const admin = await Admin.findByPk(adminUsername);
+        if (!admin.can_manage_all_accounts) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Not authorized to manage accounts'
+            });
+        }
+
+        await AccountManagement.upsert({
+            accountID: username,
+            account_status: action,
+            [action === 'freezed' ? 'freeze_date' : 'delete_date']: new Date()
+        });
+
+        res.json({
+            status: 'success',
+            message: `Account ${action} successfully`
+        });
+    } catch (error) {
+        console.error('Account management error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error managing account'
+        });
+    }
+};
+
+exports.uploadAd = async (req, res) => {
+    try {
+        const adminUsername = req.user.username;
+        
+        const admin = await Admin.findByPk(adminUsername);
+        if (!admin.ads_management) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Not authorized to manage ads'
+            });
+        }
+
+        await Ad.create({
+            uploaderID: adminUsername,
+            ad_video: req.file.buffer,
+            status: 'active'
+        });
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Ad uploaded successfully'
+        });
+    } catch (error) {
+        console.error('Ad upload error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error uploading ad'
         });
     }
 }; 

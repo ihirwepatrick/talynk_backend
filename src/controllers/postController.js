@@ -1,4 +1,4 @@
-const { Post, User, Category } = require('../models');
+const { Post, User, Category, Comment, PostLike, Notification } = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
 const multer = require('multer');
@@ -34,41 +34,29 @@ const upload = multer({
 exports.createPost = async (req, res) => {
     try {
         const { title, caption, post_category } = req.body;
-        const uploaderID = req.user.username; // From auth middleware
+        const uploaderID = req.user.username;
 
-        const result = await db.query(
-            `INSERT INTO posts (
-                uploaderID, 
-                post_status, 
-                post_category, 
-                title,
-                caption,
-                uploadDate,
-                type,
-                likes,
-                comments,
-                views,
-                shares,
-                saves
-            ) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6, 0, 0, 0, 0, 0)
-            RETURNING *`,
-            [uploaderID, 'pending', post_category, title, caption, req.file ? req.file.mimetype.split('/')[0] : 'image']
-        );
+        const post = await Post.create({
+            uploaderID,
+            post_status: 'pending',
+            post_category,
+            title,
+            caption,
+            uploadDate: new Date(),
+            type: req.file ? req.file.mimetype.split('/')[0] : 'image'
+        });
 
         // Update user's post count
-        await db.query(
-            'UPDATE users SET posts_count = posts_count + 1 WHERE username = $1',
-            [uploaderID]
-        );
+        await User.increment('posts_count', {
+            where: { username: uploaderID }
+        });
 
         res.status(201).json({
             status: 'success',
-            data: {
-                post: result.rows[0]
-            }
+            data: { post }
         });
     } catch (error) {
-        console.error('Error creating post:', error);
+        console.error('Post creation error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error creating post'
@@ -177,38 +165,33 @@ exports.deletePost = async (req, res) => {
         const { postId } = req.params;
         const username = req.user.username;
 
-        // Check if post exists and belongs to user
-        const postCheck = await db.query(
-            'SELECT * FROM posts WHERE uniqueTraceability_id = $1 AND uploaderID = $2',
-            [postId, username]
-        );
+        const post = await Post.findOne({
+            where: {
+                uniqueTraceability_id: postId,
+                uploaderID: username
+            }
+        });
 
-        if (postCheck.rows.length === 0) {
+        if (!post) {
             return res.status(404).json({
                 status: 'error',
                 message: 'Post not found or unauthorized'
             });
         }
 
-        // Delete related records first
-        await db.query('DELETE FROM post_likes WHERE postID = $1', [postId]);
-        await db.query('DELETE FROM comments WHERE postID = $1', [postId]);
-        
-        // Delete the post
-        await db.query('DELETE FROM posts WHERE uniqueTraceability_id = $1', [postId]);
+        await post.destroy();
 
         // Update user's post count
-        await db.query(
-            'UPDATE users SET posts_count = posts_count - 1 WHERE username = $1',
-            [username]
-        );
+        await User.decrement('posts_count', {
+            where: { username }
+        });
 
         res.json({
             status: 'success',
             message: 'Post deleted successfully'
         });
     } catch (error) {
-        console.error('Error deleting post:', error);
+        console.error('Post deletion error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error deleting post'
@@ -387,29 +370,31 @@ exports.getUserPendingPosts = async (req, res) => {
 
 exports.getUserPosts = async (req, res) => {
     try {
-        const username = req.user.username;
-
-        const result = await db.query(
-            `SELECT p.*, 
-                    COUNT(pl.userID) as like_count,
-                    COUNT(c.commentID) as comment_count
-             FROM posts p
-             LEFT JOIN post_likes pl ON p.uniqueTraceability_id = pl.postID
-             LEFT JOIN comments c ON p.uniqueTraceability_id = c.postID
-             WHERE p.uploaderID = $1
-             GROUP BY p.uniqueTraceability_id
-             ORDER BY p.uploadDate DESC`,
-            [username]
-        );
+        const posts = await Post.findAll({
+            where: { uploaderID: req.user.username },
+            include: [
+                {
+                    model: User,
+                    attributes: ['username', 'email']
+                },
+                {
+                    model: Comment,
+                    attributes: ['commentID']
+                },
+                {
+                    model: PostLike,
+                    attributes: ['userID']
+                }
+            ],
+            order: [['uploadDate', 'DESC']]
+        });
 
         res.json({
             status: 'success',
-            data: {
-                posts: result.rows
-            }
+            data: { posts }
         });
     } catch (error) {
-        console.error('Error fetching user posts:', error);
+        console.error('Posts fetch error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error fetching posts'
@@ -714,40 +699,43 @@ exports.likePost = async (req, res) => {
         const { postId } = req.params;
         const username = req.user.username;
 
-        // Check if already liked
-        const likeCheck = await db.query(
-            'SELECT * FROM post_likes WHERE postID = $1 AND userID = $2',
-            [postId, username]
-        );
+        const [like, created] = await PostLike.findOrCreate({
+            where: {
+                postID: postId,
+                userID: username
+            },
+            defaults: {
+                like_date: new Date()
+            }
+        });
 
-        if (likeCheck.rows.length > 0) {
+        if (!created) {
             // Unlike
-            await db.query(
-                'DELETE FROM post_likes WHERE postID = $1 AND userID = $2',
-                [postId, username]
-            );
-            await db.query(
-                'UPDATE posts SET likes = likes - 1 WHERE uniqueTraceability_id = $1',
-                [postId]
-            );
+            await like.destroy();
+            await Post.decrement('likes', {
+                where: { uniqueTraceability_id: postId }
+            });
         } else {
             // Like
-            await db.query(
-                'INSERT INTO post_likes (userID, postID) VALUES ($1, $2)',
-                [username, postId]
-            );
-            await db.query(
-                'UPDATE posts SET likes = likes + 1 WHERE uniqueTraceability_id = $1',
-                [postId]
-            );
+            await Post.increment('likes', {
+                where: { uniqueTraceability_id: postId }
+            });
+
+            // Notify post owner
+            const post = await Post.findByPk(postId);
+            await Notification.create({
+                userID: post.uploaderID,
+                notification_text: `${username} liked your post`,
+                notification_date: new Date()
+            });
         }
 
         res.json({
             status: 'success',
-            message: likeCheck.rows.length > 0 ? 'Post unliked' : 'Post liked'
+            message: created ? 'Post liked successfully' : 'Post unliked successfully'
         });
     } catch (error) {
-        console.error('Error liking/unliking post:', error);
+        console.error('Like/Unlike error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error processing like/unlike'
