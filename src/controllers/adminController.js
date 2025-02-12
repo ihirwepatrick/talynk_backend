@@ -1,5 +1,6 @@
-const { Post, User, Category, Like, Comment, Share, View, Admin, Approver, AccountManagement, Ad } = require('../models');
+const { Post, User, Category, Like, Comment, Share, View, Admin, Approver, AccountManagement, Ad, Notification } = require('../models');
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 
 exports.getDashboardData = async (req, res) => {
     try {
@@ -238,52 +239,11 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-exports.registerApprover = async (req, res) => {
+// Account Management
+exports.manageUserAccount = async (req, res) => {
     try {
-        const adminUsername = req.user.username;
-        const { username, email, password, phone1, phone2 } = req.body;
-
-        // Check admin permissions
-        const admin = await Admin.findByPk(adminUsername);
-        if (!admin.can_register_approvers) {
-            return res.status(403).json({
-                status: 'error',
-                message: 'Not authorized to register approvers'
-            });
-        }
-
-        // Create user first
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await User.create({
-            username,
-            email,
-            password: hashedPassword,
-            phone1,
-            phone2
-        });
-
-        // Create approver
-        await Approver.create({
-            username: user.username
-        });
-
-        res.status(201).json({
-            status: 'success',
-            message: 'Approver registered successfully'
-        });
-    } catch (error) {
-        console.error('Approver registration error:', error);
-        res.status(500).json({
-            status: 'error',
-            message: 'Error registering approver'
-        });
-    }
-};
-
-exports.manageAccount = async (req, res) => {
-    try {
-        const adminUsername = req.user.username;
         const { username, action } = req.body;
+        const adminUsername = req.user.username;
 
         const admin = await Admin.findByPk(adminUsername);
         if (!admin.can_manage_all_accounts) {
@@ -299,6 +259,13 @@ exports.manageAccount = async (req, res) => {
             [action === 'freezed' ? 'freeze_date' : 'delete_date']: new Date()
         });
 
+        // Create notification for user
+        await Notification.create({
+            userID: username,
+            notification_text: `Your account has been ${action} by admin`,
+            notification_date: new Date()
+        });
+
         res.json({
             status: 'success',
             message: `Account ${action} successfully`
@@ -308,6 +275,220 @@ exports.manageAccount = async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Error managing account'
+        });
+    }
+};
+
+// Video Management
+exports.getAllVideos = async (req, res) => {
+    try {
+        const { status, category, startDate, endDate, page = 1, limit = 10 } = req.query;
+        
+        const whereClause = {};
+        if (status) whereClause.post_status = status;
+        if (category) whereClause.post_category = category;
+        if (startDate && endDate) {
+            whereClause.uploadDate = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        }
+
+        const videos = await Post.findAndCountAll({
+            where: whereClause,
+            include: [
+                {
+                    model: User,
+                    attributes: ['username', 'email']
+                },
+                {
+                    model: Approver,
+                    attributes: ['username']
+                }
+            ],
+            order: [['uploadDate', 'DESC']],
+            limit: parseInt(limit),
+            offset: (page - 1) * limit
+        });
+
+        res.json({
+            status: 'success',
+            data: {
+                videos: videos.rows,
+                total: videos.count,
+                pages: Math.ceil(videos.count / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error('Videos fetch error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching videos'
+        });
+    }
+};
+
+// Approver Management
+exports.registerApprover = async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+        const staticPassword = process.env.APPROVER_DEFAULT_PASSWORD || 'Approver@123';
+
+        const hashedPassword = await bcrypt.hash(password || staticPassword, 10);
+        
+        // Create user first
+        const user = await User.create({
+            username,
+            email,
+            password: hashedPassword
+        });
+
+        // Create approver
+        await Approver.create({
+            username: user.username,
+            can_view_approved: true,
+            can_view_pending: true,
+            can_view_all_accounts: true
+        });
+
+        // Send notification to new approver
+        await Notification.create({
+            userID: username,
+            notification_text: 'You have been registered as an approver',
+            notification_date: new Date()
+        });
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Approver registered successfully'
+        });
+    } catch (error) {
+        console.error('Approver registration error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error registering approver'
+        });
+    }
+};
+
+exports.removeApprover = async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        await Approver.destroy({
+            where: { username }
+        });
+
+        await Notification.create({
+            userID: username,
+            notification_text: 'Your approver privileges have been revoked',
+            notification_date: new Date()
+        });
+
+        res.json({
+            status: 'success',
+            message: 'Approver removed successfully'
+        });
+    } catch (error) {
+        console.error('Approver removal error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error removing approver'
+        });
+    }
+};
+
+// Messaging
+exports.sendMessageToAllUsers = async (req, res) => {
+    try {
+        const { message } = req.body;
+
+        const users = await User.findAll({
+            attributes: ['username']
+        });
+
+        await Promise.all(users.map(user => 
+            Notification.create({
+                userID: user.username,
+                notification_text: message,
+                notification_date: new Date()
+            })
+        ));
+
+        res.json({
+            status: 'success',
+            message: 'Message sent to all users successfully'
+        });
+    } catch (error) {
+        console.error('Message sending error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error sending message'
+        });
+    }
+};
+
+exports.sendMessageToApprovers = async (req, res) => {
+    try {
+        const { message } = req.body;
+
+        const approvers = await Approver.findAll({
+            attributes: ['username']
+        });
+
+        await Promise.all(approvers.map(approver => 
+            Notification.create({
+                userID: approver.username,
+                notification_text: message,
+                notification_date: new Date()
+            })
+        ));
+
+        res.json({
+            status: 'success',
+            message: 'Message sent to all approvers successfully'
+        });
+    } catch (error) {
+        console.error('Message sending error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error sending message'
+        });
+    }
+};
+
+// Statistics and Reports
+exports.getAdminDashboardStats = async (req, res) => {
+    try {
+        const [
+            totalUsers,
+            totalApprovers,
+            totalPosts,
+            pendingPosts,
+            approvedPosts
+        ] = await Promise.all([
+            User.count(),
+            Approver.count(),
+            Post.count(),
+            Post.count({ where: { post_status: 'pending' } }),
+            Post.count({ where: { post_status: 'approved' } })
+        ]);
+
+        res.json({
+            status: 'success',
+            data: {
+                totalUsers,
+                totalApprovers,
+                totalPosts,
+                pendingPosts,
+                approvedPosts
+            }
+        });
+    } catch (error) {
+        console.error('Stats fetch error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching dashboard statistics'
         });
     }
 };

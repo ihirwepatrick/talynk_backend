@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { AccountManagement } = require('../models');
 
 // Authenticate user
 exports.authenticate = async (req, res, next) => {
@@ -9,16 +10,16 @@ exports.authenticate = async (req, res, next) => {
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({
                 status: 'error',
-                message: 'Authentication required'
+                message: 'No token provided'
             });
         }
 
         // Verify token
         const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 
         // Get user
-        const user = await User.findByPk(decoded.id);
+        const user = await User.findByPk(decoded.username);
         if (!user) {
             return res.status(401).json({
                 status: 'error',
@@ -26,14 +27,29 @@ exports.authenticate = async (req, res, next) => {
             });
         }
 
+        // Check if account is active
+        const accountStatus = await AccountManagement.findByPk(user.username);
+        if (accountStatus && accountStatus.account_status !== 'active') {
+            return res.status(403).json({
+                status: 'error',
+                message: `Account is ${accountStatus.account_status}`
+            });
+        }
+
         // Add user to request
         req.user = user;
         next();
     } catch (error) {
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({
+                status: 'error',
+                message: 'Invalid token'
+            });
+        }
         console.error('Authentication error:', error);
-        res.status(401).json({
+        res.status(500).json({
             status: 'error',
-            message: 'Invalid token'
+            message: 'Error authenticating user'
         });
     }
 };
