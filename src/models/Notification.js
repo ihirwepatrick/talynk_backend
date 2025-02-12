@@ -1,26 +1,46 @@
+'use strict';
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Notification = sequelize.define('Notification', {
-    id: {
+  class Notification extends Model {
+    static associate(models) {
+      Notification.belongsTo(models.User, {
+        foreignKey: 'userID',
+        targetKey: 'username'
+      });
+    }
+  }
+
+  Notification.init({
+    notificationID: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true
     },
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false
+    userID: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'username'
+      }
     },
-    type: {
-      type: DataTypes.ENUM('post_approved', 'post_rejected', 'new_comment', 'new_subscriber', 'new_like'),
-      allowNull: false
+    notification_text: {
+      type: DataTypes.TEXT
     },
-    message: {
-      type: DataTypes.TEXT,
-      allowNull: false
+    notification_date: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW
     },
-    isRead: {
+    is_read: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
     }
+  }, {
+    sequelize,
+    modelName: 'Notification',
+    tableName: 'notifications',
+    timestamps: false
   });
 
   return Notification;

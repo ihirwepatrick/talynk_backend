@@ -1,39 +1,27 @@
-const { User, Post, Category } = require('../models');
+const { User, Post, Comment, Notification, Subscription, PostLike } = require('../models');
+const { Op } = require('sequelize');
+const db = require('../config/db');
 
 // Get user profile
 exports.getProfile = async (req, res) => {
     try {
-        const user = await User.findByPk(req.user.id, {
-            attributes: { exclude: ['password'] },
-            include: [
-                {
-                    model: Category,
-                    as: 'selectedCategory',
-                    attributes: ['id', 'name']
-                }
-            ]
+        const user = await User.findByPk(req.user.username, {
+            attributes: { exclude: ['password'] }
         });
 
-        // Get user stats
-        const stats = await Post.findAndCountAll({
-            where: { uploaderId: req.user.id },
-            attributes: ['status'],
-            group: ['status']
-        });
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'User not found'
+            });
+        }
 
         res.json({
             status: 'success',
-            data: {
-                ...user.toJSON(),
-                stats: {
-                    totalPosts: stats.count,
-                    approvedPosts: stats.rows.find(r => r.status === 'approved')?.count || 0,
-                    pendingPosts: stats.rows.find(r => r.status === 'pending')?.count || 0
-                }
-            }
+            data: { user }
         });
     } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Profile fetch error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error fetching profile'
@@ -44,31 +32,186 @@ exports.getProfile = async (req, res) => {
 // Update user profile
 exports.updateProfile = async (req, res) => {
     try {
-        const { username, phone1, phone2, selectedCategoryId } = req.body;
-        const user = await User.findByPk(req.user.id);
+        const { phone1, phone2, selected_category } = req.body;
+        const username = req.user.username;
 
+        const user = await User.findByPk(username);
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'User not found'
+            });
+        }
+
+        // Update user
         await user.update({
-            username,
-            phone1,
-            phone2,
-            selectedCategoryId
+            phone1: phone1 || user.phone1,
+            phone2: phone2 || user.phone2,
+            selected_category: selected_category || user.selected_category,
+            user_facial_image: req.file ? req.file.buffer : user.user_facial_image
         });
 
         res.json({
             status: 'success',
             message: 'Profile updated successfully',
             data: {
-                username: user.username,
-                phone1: user.phone1,
-                phone2: user.phone2,
-                selectedCategoryId: user.selectedCategoryId
+                user: {
+                    username: user.username,
+                    email: user.email,
+                    phone1: user.phone1,
+                    phone2: user.phone2,
+                    selected_category: user.selected_category
+                }
             }
         });
     } catch (error) {
-        console.error('Error updating profile:', error);
+        console.error('Profile update error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error updating profile'
+        });
+    }
+};
+
+// Get user statistics
+exports.getStatistics = async (req, res) => {
+    try {
+        const username = req.user.username;
+
+        const [user, posts, comments, likes] = await Promise.all([
+            User.findByPk(username),
+            Post.count({ where: { uploaderID: username } }),
+            Comment.count({ where: { commentorID: username } }),
+            PostLike.count({ where: { userID: username } })
+        ]);
+
+        res.json({
+            status: 'success',
+            data: {
+                statistics: {
+                    posts_count: posts,
+                    total_profile_views: user.total_profile_views,
+                    total_likes: user.likes,
+                    total_subscribers: user.subscribers,
+                    total_comments: comments,
+                    total_likes_given: likes
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Statistics fetch error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching statistics'
+        });
+    }
+};
+
+// Get user's recent searches
+exports.getRecentSearches = async (req, res) => {
+    try {
+        const username = req.user.username;
+        
+        const searches = await db.query(
+            `SELECT search_term, search_date 
+             FROM recent_searches 
+             WHERE userID = $1 
+             ORDER BY search_date DESC 
+             LIMIT 10`,
+            [username]
+        );
+
+        res.json({
+            status: 'success',
+            data: {
+                searches: searches.rows
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching recent searches:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching recent searches'
+        });
+    }
+};
+
+// Add a search term
+exports.addSearchTerm = async (req, res) => {
+    try {
+        const username = req.user.username;
+        const { searchTerm } = req.body;
+        
+        await db.query(
+            `INSERT INTO recent_searches (userID, search_term) 
+             VALUES ($1, $2)`,
+            [username, searchTerm]
+        );
+
+        // Update user's recent_searches array
+        await db.query(
+            `UPDATE users 
+             SET recent_searches = array_append(
+                 CASE 
+                     WHEN array_length(recent_searches, 1) >= 10 
+                     THEN recent_searches[2:10] 
+                     ELSE recent_searches 
+                 END,
+                 $2
+             )
+             WHERE username = $1`,
+            [username, searchTerm]
+        );
+
+        res.json({
+            status: 'success',
+            message: 'Search term added successfully'
+        });
+    } catch (error) {
+        console.error('Error adding search term:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error adding search term'
+        });
+    }
+};
+
+// Toggle notifications
+exports.toggleNotifications = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.username);
+        await user.update({ notification: !user.notification });
+
+        res.json({
+            status: 'success',
+            message: `Notifications ${user.notification ? 'enabled' : 'disabled'} successfully`
+        });
+    } catch (error) {
+        console.error('Notification toggle error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error toggling notifications'
+        });
+    }
+};
+
+// Get user notifications
+exports.getNotifications = async (req, res) => {
+    try {
+        const notifications = await Notification.findAll({
+            where: { userID: req.user.username },
+            order: [['notification_date', 'DESC']]
+        });
+
+        res.json({
+            status: 'success',
+            data: { notifications }
+        });
+    } catch (error) {
+        console.error('Notifications fetch error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching notifications'
         });
     }
 };

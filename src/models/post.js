@@ -1,77 +1,97 @@
 'use strict';
+const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  const Post = sequelize.define('Post', {
-    id: {
+  class Post extends Model {
+    static associate(models) {
+      Post.belongsTo(models.User, {
+        foreignKey: 'uploaderID',
+        targetKey: 'username'
+      });
+      Post.belongsTo(models.Approver, {
+        foreignKey: 'approverID',
+        targetKey: 'username'
+      });
+      Post.hasMany(models.Comment, {
+        foreignKey: 'postID'
+      });
+      Post.hasMany(models.PostLike, {
+        foreignKey: 'postID',
+        sourceKey: 'uniqueTraceability_id'
+      });
+    }
+  }
+
+  Post.init({
+    uniqueTraceability_id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true
     },
-    title: {
-      type: DataTypes.STRING,
-      allowNull: false
+    uploaderID: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'username'
+      }
     },
-    caption: {
-      type: DataTypes.TEXT,
-      allowNull: true
+    post_status: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      validate: {
+        isIn: [['pending', 'approved']]
+      }
     },
-    mediaUrl: {
-      type: DataTypes.STRING,
-      allowNull: true
+    post_category: {
+      type: DataTypes.STRING(255)
     },
-    mediaType: {
-      type: DataTypes.ENUM('image', 'video'),
-      allowNull: true
+    approverID: {
+      type: DataTypes.STRING(255),
+      references: {
+        model: 'approvers',
+        key: 'username'
+      }
     },
-    mediaMetadata: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      defaultValue: {}
+    approvedDate: {
+      type: DataTypes.DATE
     },
-    status: {
-      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-      defaultValue: 'pending'
+    uploadDate: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW
     },
-    uploaderId: {
+    length: {
+      type: DataTypes.INTEGER
+    },
+    type: {
+      type: DataTypes.STRING(50)
+    },
+    likes: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      defaultValue: 0
     },
-    approverId: {
+    comments: {
       type: DataTypes.INTEGER,
-      allowNull: true
+      defaultValue: 0
     },
-    categoryId: {
+    views: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      defaultValue: 0
     },
-    rejectionReason: {
-      type: DataTypes.TEXT,
-      allowNull: true
+    shares: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
     },
-    viewCount: {
+    saves: {
       type: DataTypes.INTEGER,
       defaultValue: 0
     }
   }, {
     sequelize,
     modelName: 'Post',
-    tableName: 'Posts',
-    timestamps: true
+    tableName: 'posts',
+    timestamps: false
   });
-
-  Post.associate = function(models) {
-    Post.belongsTo(models.User, {
-      foreignKey: 'uploaderId',
-      as: 'uploader'
-    });
-    Post.belongsTo(models.User, {
-      foreignKey: 'approverId',
-      as: 'approver'
-    });
-    Post.belongsTo(models.Category, {
-      foreignKey: 'categoryId'
-    });
-  };
 
   return Post;
 }; 

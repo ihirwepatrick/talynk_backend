@@ -1,23 +1,23 @@
 const { Category } = require('../models');
+const db = require('../config/db');
 
 exports.getAllCategories = async (req, res) => {
     try {
-        console.log('Fetching all categories');
-        const categories = await Category.findAll({
-            order: [['name', 'ASC']]
-        });
+        const result = await db.query(
+            'SELECT DISTINCT post_category FROM posts WHERE post_category IS NOT NULL'
+        );
 
-        console.log('Categories found:', categories.length);
         res.json({
             status: 'success',
-            data: categories
+            data: {
+                categories: result.rows.map(row => row.post_category)
+            }
         });
     } catch (error) {
         console.error('Error fetching categories:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error fetching categories',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Error fetching categories'
         });
     }
 };

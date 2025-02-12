@@ -2,36 +2,45 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class RecentSearch extends Model {
+  class PostLike extends Model {
     static associate(models) {
-      RecentSearch.belongsTo(models.User, {
+      PostLike.belongsTo(models.User, {
         foreignKey: 'userID',
         targetKey: 'username'
+      });
+      PostLike.belongsTo(models.Post, {
+        foreignKey: 'postID'
       });
     }
   }
 
-  RecentSearch.init({
+  PostLike.init({
     userID: {
       type: DataTypes.STRING(255),
+      primaryKey: true,
       references: {
         model: 'users',
         key: 'username'
       }
     },
-    search_term: {
-      type: DataTypes.TEXT
+    postID: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      references: {
+        model: 'posts',
+        key: 'uniqueTraceability_id'
+      }
     },
-    search_date: {
+    like_date: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW
     }
   }, {
     sequelize,
-    modelName: 'RecentSearch',
-    tableName: 'recent_searches',
+    modelName: 'PostLike',
+    tableName: 'post_likes',
     timestamps: false
   });
 
-  return RecentSearch;
+  return PostLike;
 }; 

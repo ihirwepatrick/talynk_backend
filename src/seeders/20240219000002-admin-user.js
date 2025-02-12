@@ -7,16 +7,20 @@ module.exports = {
     
     await queryInterface.bulkInsert('Users', [{
       username: 'admin',
+      email: 'admin@talynk.com',
       password: hashedPassword,
-      primaryPhone: '1234567890',
-      secondaryPhone: '0987654321',
-      isAdmin: true,
+      role: 'admin',
+      phone1: '+250780000000',
+      phone2: null,
+      isActive: true,
+      isFrozen: false,
+      totalProfileViews: 0,
       createdAt: new Date(),
       updatedAt: new Date()
     }], {});
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.bulkDelete('Users', { username: 'admin' }, {});
+    await queryInterface.bulkDelete('Users', { email: 'admin@talynk.com' }, {});
   }
 }; 

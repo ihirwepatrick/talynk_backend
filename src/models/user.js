@@ -1,72 +1,91 @@
 'use strict';
+const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  const User = sequelize.define('User', {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
-    },
+  class User extends Model {
+    static associate(models) {
+      // Associations
+      User.hasMany(models.Post, {
+        foreignKey: 'uploaderID',
+        sourceKey: 'username'
+      });
+      User.hasMany(models.Comment, {
+        foreignKey: 'commentorID',
+        sourceKey: 'username'
+      });
+      User.hasMany(models.Notification, {
+        foreignKey: 'userID',
+        sourceKey: 'username'
+      });
+      User.hasOne(models.Admin, {
+        foreignKey: 'username'
+      });
+      User.hasOne(models.Approver, {
+        foreignKey: 'username'
+      });
+    }
+  }
+
+  User.init({
     username: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(255),
+      primaryKey: true,
+      allowNull: false
+    },
+    email: {
+      type: DataTypes.STRING(255),
       allowNull: false,
       unique: true
     },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true
-      }
-    },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    role: {
-      type: DataTypes.ENUM('admin', 'approver', 'user'),
-      defaultValue: 'user'
-    },
     phone1: {
-      type: DataTypes.STRING,
-      allowNull: true
+      type: DataTypes.STRING(15)
     },
     phone2: {
-      type: DataTypes.STRING,
-      allowNull: true
+      type: DataTypes.STRING(15)
     },
-    facialImage: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    totalProfileViews: {
+    posts_count: {
       type: DataTypes.INTEGER,
       defaultValue: 0
     },
-    selectedCategoryId: {
+    total_profile_views: {
       type: DataTypes.INTEGER,
-      allowNull: true
+      defaultValue: 0
     },
-    isActive: {
+    user_facial_image: {
+      type: DataTypes.BLOB
+    },
+    selected_category: {
+      type: DataTypes.STRING(255)
+    },
+    password: {
+      type: DataTypes.STRING(255),
+      allowNull: false
+    },
+    notification: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
     },
-    isFrozen: {
+    recent_searches: {
+      type: DataTypes.ARRAY(DataTypes.TEXT),
+      defaultValue: []
+    },
+    likes: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    subscribers: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    remember_me: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
-    },
-    lastLoginDevice: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    rememberToken: {
-      type: DataTypes.STRING,
-      allowNull: true
     }
   }, {
-    tableName: 'Users',
-    timestamps: true
+    sequelize,
+    modelName: 'User',
+    tableName: 'users',
+    timestamps: false
   });
 
   return User;
