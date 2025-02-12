@@ -8,25 +8,29 @@ exports.register = async (req, res) => {
 
     const { username, email, password, phone1, phone2 } = req.body;
 
+    // Check if username exists
+    const existingUsername = await User.findOne({ where: { username } });
+    if (existingUsername) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Username already taken'
+      });
+    }
+
+    // Check if email exists
+    const existingEmail = await User.findOne({ where: { email } });
+    if (existingEmail) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email already registered'
+      });
+    }
+
     // Validate input
     if (!username || !email || !password) {
       return res.status(400).json({
         status: 'error',
         message: 'Please provide all required fields'
-      });
-    }
-
-    // Check if user exists
-    const existingUser = await User.findOne({
-      where: { 
-        email: email 
-      }
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Email already registered'
       });
     }
 
@@ -40,7 +44,10 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       phone1,
       phone2,
-      role: 'user'
+      role: 'user',
+      isActive: true,
+      isFrozen: false,
+      totalProfileViews: 0
     });
 
     // Generate token
@@ -50,7 +57,7 @@ exports.register = async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Send response
+    // Send response without password
     res.status(201).json({
       status: 'success',
       message: 'Registration successful',
@@ -59,18 +66,19 @@ exports.register = async (req, res) => {
           id: user.id,
           username: user.username,
           email: user.email,
-          role: user.role
+          role: user.role,
+          phone1: user.phone1,
+          phone2: user.phone2
         },
         token
       }
     });
 
   } catch (error) {
-    console.error('Registration error details:', error);  // Detailed error log
+    console.error('Registration error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Registration failed',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      message: 'Registration failed. Please try again.'
     });
   }
 };

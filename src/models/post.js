@@ -17,11 +17,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     mediaUrl: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true
     },
     mediaType: {
       type: DataTypes.ENUM('image', 'video'),
-      allowNull: false
+      allowNull: true
     },
     mediaMetadata: {
       type: DataTypes.JSON,
@@ -34,28 +34,28 @@ module.exports = (sequelize, DataTypes) => {
     },
     uploaderId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Users',
-        key: 'id'
-      }
+      allowNull: false
     },
     approverId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'Users',
-        key: 'id'
-      }
-    },
-    approvedAt: {
-      type: DataTypes.DATE,
       allowNull: true
+    },
+    categoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    rejectionReason: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    viewCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
     }
   }, {
     sequelize,
     modelName: 'Post',
-    tableName: 'posts',
+    tableName: 'Posts',
     timestamps: true
   });
 
@@ -67,6 +67,9 @@ module.exports = (sequelize, DataTypes) => {
     Post.belongsTo(models.User, {
       foreignKey: 'approverId',
       as: 'approver'
+    });
+    Post.belongsTo(models.Category, {
+      foreignKey: 'categoryId'
     });
   };
 

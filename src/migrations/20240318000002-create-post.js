@@ -19,16 +19,11 @@ module.exports = {
       },
       mediaUrl: {
         type: Sequelize.STRING,
-        allowNull: false
+        allowNull: true
       },
       mediaType: {
         type: Sequelize.ENUM('image', 'video'),
-        allowNull: false
-      },
-      mediaMetadata: {
-        type: Sequelize.JSON,
-        allowNull: true,
-        defaultValue: {}
+        allowNull: true
       },
       status: {
         type: Sequelize.ENUM('pending', 'approved', 'rejected'),
@@ -40,9 +35,7 @@ module.exports = {
         references: {
           model: 'Users',
           key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        }
       },
       approverId: {
         type: Sequelize.INTEGER,
@@ -50,9 +43,7 @@ module.exports = {
         references: {
           model: 'Users',
           key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
+        }
       },
       categoryId: {
         type: Sequelize.INTEGER,
@@ -60,16 +51,10 @@ module.exports = {
         references: {
           model: 'Categories',
           key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        }
       },
       rejectionReason: {
         type: Sequelize.TEXT,
-        allowNull: true
-      },
-      approvedAt: {
-        type: Sequelize.DATE,
         allowNull: true
       },
       viewCount: {

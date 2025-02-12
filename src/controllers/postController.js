@@ -37,12 +37,12 @@ exports.createPost = async (req, res) => {
             title,
             caption,
             categoryId,
-            uploaderId: req.user.id
+            uploaderId: req.user.id,
+            status: 'pending'
         });
 
         res.status(201).json({
             status: 'success',
-            message: 'Post created successfully',
             data: { post }
         });
     } catch (error) {
@@ -121,8 +121,13 @@ exports.getPostById = async (req, res) => {
 
 exports.updatePost = async (req, res) => {
     try {
-        const post = await Post.findByPk(req.params.id);
-        
+        const post = await Post.findOne({
+            where: { 
+                id: req.params.id,
+                uploaderId: req.user.id
+            }
+        });
+
         if (!post) {
             return res.status(404).json({
                 status: 'error',
@@ -130,18 +135,10 @@ exports.updatePost = async (req, res) => {
             });
         }
 
-        if (post.uploaderId !== req.user.id) {
-            return res.status(403).json({
-                status: 'error',
-                message: 'Not authorized to update this post'
-            });
-        }
-
         await post.update(req.body);
 
         res.json({
             status: 'success',
-            message: 'Post updated successfully',
             data: { post }
         });
     } catch (error) {
@@ -155,19 +152,17 @@ exports.updatePost = async (req, res) => {
 
 exports.deletePost = async (req, res) => {
     try {
-        const post = await Post.findByPk(req.params.id);
-        
+        const post = await Post.findOne({
+            where: { 
+                id: req.params.id,
+                uploaderId: req.user.id
+            }
+        });
+
         if (!post) {
             return res.status(404).json({
                 status: 'error',
                 message: 'Post not found'
-            });
-        }
-
-        if (post.uploaderId !== req.user.id) {
-            return res.status(403).json({
-                status: 'error',
-                message: 'Not authorized to delete this post'
             });
         }
 
@@ -358,42 +353,31 @@ exports.getUserPendingPosts = async (req, res) => {
 exports.getUserPosts = async (req, res) => {
     try {
         const posts = await Post.findAll({
-            where: {
-                userId: req.user.id
-            },
+            where: { uploaderId: req.user.id },
+            attributes: [
+                'id', 'title', 'caption', 'mediaUrl', 
+                'mediaType', 'status', 'uploaderId', 
+                'approverId', 'categoryId', 'rejectionReason', 
+                'viewCount', 'createdAt', 'updatedAt'
+            ],
             include: [
                 {
-                    model: User,
-                    as: 'author',
-                    attributes: ['id', 'username']
-                },
-                {
                     model: Category,
-                    as: 'category'
+                    attributes: ['id', 'name']
                 }
             ],
             order: [['createdAt', 'DESC']]
         });
 
-        // Process media URLs
-        const processedPosts = posts.map(post => {
-            const postObj = post.toJSON();
-            if (postObj.mediaUrl && !postObj.mediaUrl.startsWith('http')) {
-                postObj.mediaUrl = `/uploads/${postObj.mediaUrl.replace(/^uploads\//, '')}`;
-            }
-            return postObj;
-        });
-
         res.json({
             status: 'success',
-            data: processedPosts
+            data: { posts }
         });
-
     } catch (error) {
-        console.error('Error in getUserPosts:', error);
+        console.error('Error fetching user posts:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error fetching user posts'
+            message: 'Error fetching posts'
         });
     }
 };
@@ -657,6 +641,35 @@ exports.getPosts = async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Error fetching posts'
+        });
+    }
+};
+
+exports.getPost = async (req, res) => {
+    try {
+        const post = await Post.findOne({
+            where: { 
+                id: req.params.id,
+                uploaderId: req.user.id
+            }
+        });
+
+        if (!post) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Post not found'
+            });
+        }
+
+        res.json({
+            status: 'success',
+            data: { post }
+        });
+    } catch (error) {
+        console.error('Error fetching post:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching post'
         });
     }
 }; 
