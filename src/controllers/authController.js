@@ -1,26 +1,23 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, Admin, Approver } = require('../models');
+const { Op } = require('sequelize');
 
 exports.register = async (req, res) => {
     try {
-        const { username, email, password, phone1, phone2 } = req.body;
+        const { username, email, password } = req.body;
 
-        // Check if username exists
-        const existingUser = await User.findOne({ where: { username } });
+        // Check if user exists
+        const existingUser = await User.findOne({
+            where: {
+                [Op.or]: [{ username }, { email }]
+            }
+        });
+
         if (existingUser) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Username already taken'
-            });
-        }
-
-        // Check if email exists
-        const existingEmail = await User.findOne({ where: { email } });
-        if (existingEmail) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Email already registered'
+                message: 'Username or email already exists'
             });
         }
 
@@ -31,47 +28,39 @@ exports.register = async (req, res) => {
         const user = await User.create({
             username,
             email,
-            password: hashedPassword,
-            phone1,
-            phone2
+            password: hashedPassword
         });
-
-        // Generate token
-        const token = jwt.sign(
-            { username: user.username },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '24h' }
-        );
 
         res.status(201).json({
             status: 'success',
-            message: 'Registration successful',
-            data: {
-                user: {
-                    username: user.username,
-                    email: user.email,
-                    phone1: user.phone1,
-                    phone2: user.phone2
-                },
-                token
-            }
+            message: 'User registered successfully'
         });
-
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Registration failed'
+            message: 'Error during registration'
         });
     }
 };
 
 exports.login = async (req, res) => {
     try {
-        const { email, password, remember_me } = req.body;
+        const { email, password, role } = req.body;
+        let user;
 
-        // Find user
-        const user = await User.findOne({ where: { email } });
+        // Check role and get appropriate user
+        switch (role) {
+            case 'admin':
+                user = await Admin.findOne({ where: { email } });
+                break;
+            case 'approver':
+                user = await Approver.findOne({ where: { email } });
+                break;
+            default:
+                user = await User.findOne({ where: { email } });
+        }
+
         if (!user) {
             return res.status(401).json({
                 status: 'error',
@@ -88,37 +77,29 @@ exports.login = async (req, res) => {
             });
         }
 
-        // Update remember_me if provided
-        if (remember_me !== undefined) {
-            await user.update({ remember_me });
-        }
-
         // Generate token
         const token = jwt.sign(
-            { username: user.username },
-            process.env.JWT_SECRET || 'your-secret-key',
+            { username: user.username, role },
+            process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
         res.json({
             status: 'success',
-            message: 'Login successful',
             data: {
+                token,
                 user: {
                     username: user.username,
                     email: user.email,
-                    phone1: user.phone1,
-                    phone2: user.phone2
-                },
-                token
+                    role
+                }
             }
         });
-
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Login failed'
+            message: 'Error during login'
         });
     }
 };

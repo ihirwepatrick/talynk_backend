@@ -243,35 +243,15 @@ exports.getDashboardStats = async (req, res) => {
 exports.manageUserAccount = async (req, res) => {
     try {
         const { username, action } = req.body;
-        const adminUsername = req.user.username;
-
-        const admin = await Admin.findByPk(adminUsername);
-        if (!admin.can_manage_all_accounts) {
-            return res.status(403).json({
-                status: 'error',
-                message: 'Not authorized to manage accounts'
-            });
-        }
-
-        await AccountManagement.upsert({
-            accountID: username,
-            account_status: action,
-            [action === 'freezed' ? 'freeze_date' : 'delete_date']: new Date()
-        });
-
-        // Create notification for user
-        await Notification.create({
-            userID: username,
-            notification_text: `Your account has been ${action} by admin`,
-            notification_date: new Date()
-        });
-
+        await User.update(
+            { status: action },
+            { where: { username } }
+        );
         res.json({
             status: 'success',
             message: `Account ${action} successfully`
         });
     } catch (error) {
-        console.error('Account management error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error managing account'
@@ -282,45 +262,17 @@ exports.manageUserAccount = async (req, res) => {
 // Video Management
 exports.getAllVideos = async (req, res) => {
     try {
-        const { status, category, startDate, endDate, page = 1, limit = 10 } = req.query;
-        
-        const whereClause = {};
-        if (status) whereClause.post_status = status;
-        if (category) whereClause.post_category = category;
-        if (startDate && endDate) {
-            whereClause.uploadDate = {
-                [Op.between]: [new Date(startDate), new Date(endDate)]
-            };
-        }
-
-        const videos = await Post.findAndCountAll({
-            where: whereClause,
-            include: [
-                {
-                    model: User,
-                    attributes: ['username', 'email']
-                },
-                {
-                    model: Approver,
-                    attributes: ['username']
-                }
-            ],
-            order: [['uploadDate', 'DESC']],
-            limit: parseInt(limit),
-            offset: (page - 1) * limit
+        const videos = await Post.findAll({
+            include: [{
+                model: User,
+                attributes: ['username']
+            }]
         });
-
         res.json({
             status: 'success',
-            data: {
-                videos: videos.rows,
-                total: videos.count,
-                pages: Math.ceil(videos.count / limit),
-                currentPage: page
-            }
+            data: { videos }
         });
     } catch (error) {
-        console.error('Videos fetch error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error fetching videos'
@@ -332,38 +284,16 @@ exports.getAllVideos = async (req, res) => {
 exports.registerApprover = async (req, res) => {
     try {
         const { username, email, password } = req.body;
-        const staticPassword = process.env.APPROVER_DEFAULT_PASSWORD || 'Approver@123';
-
-        const hashedPassword = await bcrypt.hash(password || staticPassword, 10);
-        
-        // Create user first
-        const user = await User.create({
+        await Approver.create({
             username,
             email,
-            password: hashedPassword
+            password // Assume password is hashed in a pre-save hook
         });
-
-        // Create approver
-        await Approver.create({
-            username: user.username,
-            can_view_approved: true,
-            can_view_pending: true,
-            can_view_all_accounts: true
-        });
-
-        // Send notification to new approver
-        await Notification.create({
-            userID: username,
-            notification_text: 'You have been registered as an approver',
-            notification_date: new Date()
-        });
-
-        res.status(201).json({
+        res.json({
             status: 'success',
             message: 'Approver registered successfully'
         });
     } catch (error) {
-        console.error('Approver registration error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error registering approver'
@@ -374,23 +304,14 @@ exports.registerApprover = async (req, res) => {
 exports.removeApprover = async (req, res) => {
     try {
         const { username } = req.params;
-
         await Approver.destroy({
             where: { username }
         });
-
-        await Notification.create({
-            userID: username,
-            notification_text: 'Your approver privileges have been revoked',
-            notification_date: new Date()
-        });
-
         res.json({
             status: 'success',
             message: 'Approver removed successfully'
         });
     } catch (error) {
-        console.error('Approver removal error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error removing approver'
@@ -520,6 +441,23 @@ exports.uploadAd = async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Error uploading ad'
+        });
+    }
+};
+
+exports.getAllUsers = async (req, res) => {
+    try {
+        const users = await User.findAll({
+            attributes: ['username', 'email', 'createdAt']
+        });
+        res.json({
+            status: 'success',
+            data: { users }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching users'
         });
     }
 }; 

@@ -6,10 +6,16 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "test": "jest",
+    "test": "jest --detectOpenHandles --forceExit",
+    "test:watch": "jest --watch",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
     "seed": "sequelize-cli db:seed:all"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": ["<rootDir>/src/tests/setup.js"],
+    "testTimeout": 10000
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
@@ -38,7 +44,10 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "nodemon": "^3.0.2",
-    "sequelize-cli": "^6.6.2"
+    "sequelize-cli": "^6.6.2",
+    "supertest": "^7.0.0"
   }
+  
 }

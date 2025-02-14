@@ -3,47 +3,51 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-const process = require('process');
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+const sequelize = require('../config/database');
+
 const db = {};
 
-let sequelize;
-if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
-} else {
-  sequelize = new Sequelize(
-    config.database,
-    config.username,
-    config.password,
-    config
-  );
+// First, load and initialize all models
+const modelFiles = fs.readdirSync(__dirname)
+    .filter(file => {
+        return (
+            file.indexOf('.') !== 0 &&
+            file !== basename &&
+            file.slice(-3) === '.js'
+        );
+    });
+
+// Initialize models
+for (const file of modelFiles) {
+    try {
+        const model = require(path.join(__dirname, file));
+        if (typeof model === 'function' && model.prototype instanceof Sequelize.Model) {
+            const initializedModel = new model(sequelize, Sequelize.DataTypes);
+            db[initializedModel.name] = initializedModel;
+            console.log(`Initialized model: ${initializedModel.name}`);
+        } else {
+            db[model.name] = model;
+            console.log(`Loaded model: ${model.name}`);
+        }
+    } catch (error) {
+        console.error(`Error loading model from file ${file}:`, error);
+    }
 }
 
-// Import models
-fs.readdirSync(__dirname)
-  .filter(file => {
-    return (
-      file.indexOf('.') !== 0 &&
-      file !== basename &&
-      file.slice(-3) === '.js' &&
-      file.indexOf('.test.js') === -1
-    );
-  })
-  .forEach(file => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;
-  });
-
-// Set up associations
+// Then set up associations after all models are initialized
 Object.keys(db).forEach(modelName => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
-  }
+    if (db[modelName].associate) {
+        try {
+            db[modelName].associate(db);
+            console.log(`Associated model: ${modelName}`);
+        } catch (error) {
+            console.error(`Error associating model ${modelName}:`, error);
+        }
+    }
 });
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-module.exports = db; 
+module.exports = db;

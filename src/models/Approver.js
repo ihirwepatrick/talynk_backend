@@ -1,46 +1,68 @@
 'use strict';
-const { Model } = require('sequelize');
+const { Model, DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-module.exports = (sequelize, DataTypes) => {
-  class Approver extends Model {
-    static associate(models) {
-      Approver.belongsTo(models.User, {
-        foreignKey: 'username'
-      });
-      Approver.hasMany(models.Post, {
-        foreignKey: 'approverID',
-        sourceKey: 'username'
-      });
-    }
+class Approver extends Model {
+  static associate(models) {
+    Approver.belongsTo(models.Admin, {
+      foreignKey: 'registeredBy',
+      as: 'registeredByAdmin'
+    });
+    
+    Approver.hasMany(models.Post, {
+      foreignKey: 'approverID',
+      as: 'approvedPosts'
+    });
   }
+}
 
-  Approver.init({
-    username: {
-      type: DataTypes.STRING(255),
-      primaryKey: true,
-      references: {
-        model: 'users',
-        key: 'username'
-      }
-    },
-    can_view_approved: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
-    },
-    can_view_pending: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
-    },
-    can_view_all_accounts: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
+Approver.init({
+  username: {
+    type: DataTypes.STRING,
+    primaryKey: true,
+    allowNull: false,
+    unique: true
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: {
+      isEmail: true
     }
-  }, {
-    sequelize,
-    modelName: 'Approver',
-    tableName: 'approvers',
-    timestamps: false
-  });
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM('active', 'inactive'),
+    defaultValue: 'active'
+  },
+  registeredBy: {
+    type: DataTypes.STRING,
+    references: {
+      model: 'admins',
+      key: 'username'
+    }
+  },
+  can_view_approved: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  can_view_pending: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  can_view_all_accounts: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  }
+}, {
+  sequelize,
+  modelName: 'Approver',
+  tableName: 'approvers',
+  timestamps: true
+});
 
-  return Approver;
-}; 
+module.exports = Approver; 

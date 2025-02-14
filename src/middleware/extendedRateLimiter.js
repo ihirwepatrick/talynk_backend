@@ -1,93 +1,70 @@
 const rateLimit = require('express-rate-limit');
-const RedisStore = require('rate-limit-redis');
-const Redis = require('ioredis');
 
-const redis = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379
+// First, install the required packages:
+// npm install express-rate-limit rate-limit-redis ioredis
+
+// Using memory store instead of Redis
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        status: 'error',
+        message: 'Too many requests, please try again later.'
+    }
 });
 
-// Specific route limiters
+// Specific route limiters using memory store
 exports.rateLimiters = {
     // Auth routes
     login: rateLimit({
-        store: new RedisStore({
-            client: redis,
-            prefix: 'rl:login:'
-        }),
         windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 5, // 5 attempts
+        max: 5, // 5 attempts per window
+        standardHeaders: true,
+        legacyHeaders: false,
         message: {
             status: 'error',
             message: 'Too many login attempts. Please try again later.'
         }
     }),
 
+    // Registration
     register: rateLimit({
-        store: new RedisStore({
-            client: redis,
-            prefix: 'rl:register:'
-        }),
         windowMs: 60 * 60 * 1000, // 1 hour
-        max: 3, // 3 attempts
+        max: 3, // 3 registrations per hour
+        standardHeaders: true,
+        legacyHeaders: false,
         message: {
             status: 'error',
             message: 'Too many registration attempts. Please try again later.'
         }
     }),
 
-    // Content creation
-    createPost: rateLimit({
-        store: new RedisStore({
-            client: redis,
-            prefix: 'rl:post:'
-        }),
+    // Video upload
+    upload: rateLimit({
         windowMs: 60 * 60 * 1000, // 1 hour
-        max: 10, // 10 posts
+        max: 10, // 10 uploads per hour
+        standardHeaders: true,
+        legacyHeaders: false,
         message: {
             status: 'error',
-            message: 'Post limit reached. Please try again later.'
-        }
-    }),
-
-    createComment: rateLimit({
-        store: new RedisStore({
-            client: redis,
-            prefix: 'rl:comment:'
-        }),
-        windowMs: 60 * 60 * 1000, // 1 hour
-        max: 50, // 50 comments
-        message: {
-            status: 'error',
-            message: 'Comment limit reached. Please try again later.'
-        }
-    }),
-
-    // Profile updates
-    profileUpdate: rateLimit({
-        store: new RedisStore({
-            client: redis,
-            prefix: 'rl:profile:'
-        }),
-        windowMs: 60 * 60 * 1000, // 1 hour
-        max: 5, // 5 updates
-        message: {
-            status: 'error',
-            message: 'Too many profile updates. Please try again later.'
+            message: 'Upload limit reached. Please try again later.'
         }
     }),
 
     // Search
     search: rateLimit({
-        store: new RedisStore({
-            client: redis,
-            prefix: 'rl:search:'
-        }),
         windowMs: 60 * 1000, // 1 minute
-        max: 10, // 10 searches
+        max: 10, // 10 searches per minute
+        standardHeaders: true,
+        legacyHeaders: false,
         message: {
             status: 'error',
             message: 'Search limit reached. Please try again later.'
         }
     })
-}; 
+};
+
+// Export the general limiter as well
+exports.generalLimiter = limiter; 

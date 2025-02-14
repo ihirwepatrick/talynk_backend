@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talynk API Test Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .nav-link.active { background-color: #f8f9fa; }
+        #response { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar p-3">
+                <h4>Test Routes</h4>
+                <div class="nav flex-column">
+                    <a class="nav-link active" href="#" data-page="auth">Authentication</a>
+                    <a class="nav-link" href="#" data-page="admin">Admin Panel</a>
+                    <a class="nav-link" href="#" data-page="approver">Approver Panel</a>
+                    <a class="nav-link" href="#" data-page="user">User Panel</a>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">API Test Dashboard</h1>
+                </div>
+
+                <!-- Content will be loaded here -->
+                <div id="content"></div>
+
+                <!-- Response area -->
+                <div class="mt-4">
+                    <h4>Response:</h4>
+                    <pre id="response" class="bg-light p-3 border rounded"></pre>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Store the token
+        let authToken = localStorage.getItem('token');
+
+        // Load page content
+        async function loadPage(page) {
+            try {
+                const response = await fetch(`/pages/${page}.html`);
+                const content = await response.text();
+                document.getElementById('content').innerHTML = content;
+            } catch (error) {
+                console.error('Error loading page:', error);
+            }
+        }
+
+        // Handle navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                e.target.classList.add('active');
+                loadPage(e.target.dataset.page);
+            });
+        });
+
+        // Load auth page by default
+        loadPage('auth');
+
+        // Helper function to make API requests
+        async function makeRequest(url, method = 'GET', body = null) {
+            try {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+
+                const options = {
+                    method,
+                    headers
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                document.getElementById('response').textContent = 
+                    JSON.stringify(data, null, 2);
+                
+                return data;
+            } catch (error) {
+                document.getElementById('response').textContent = 
+                    `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

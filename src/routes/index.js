@@ -20,9 +20,14 @@ const adController = require('../controllers/adController');
 const categoryController = require('../controllers/categoryController');
 const approverRoutes = require('./approverRoutes');
 
+// Test route
+router.get('/test', (req, res) => {
+    res.json({ message: 'API is working' });
+});
+
 // Auth routes
-router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
+router.post('/auth/register', authController.register);
 
 // User routes (all protected)
 router.get('/user/profile', authenticate, userController.getProfile);
@@ -49,12 +54,19 @@ router.post('/comments/:commentId/report', authenticate, commentController.repor
 router.get('/categories', categoryController.getAllCategories);
 
 // Admin routes
+router.get('/admin/users', authenticate, isAdmin, adminController.getAllUsers);
+router.post('/admin/accounts/manage', authenticate, isAdmin, adminController.manageUserAccount);
 router.post('/admin/approvers', authenticate, isAdmin, adminController.registerApprover);
-router.post('/admin/accounts/manage', authenticate, isAdmin, adminController.manageAccount);
-router.post('/admin/ads', authenticate, isAdmin, upload.single('ad_video'), adminController.uploadAd);
+router.delete('/admin/approvers/:username', authenticate, isAdmin, adminController.removeApprover);
+router.get('/admin/videos', authenticate, isAdmin, adminController.getAllVideos);
 
 // Approver routes
-router.use('/approver', approverRoutes);
+router.get('/approver/stats', authenticate, isApprover, approverController.getApproverStats);
+router.get('/approver/posts/pending', authenticate, isApprover, approverController.getPendingPosts);
+router.get('/approver/posts/approved', authenticate, isApprover, approverController.getApprovedPosts);
+router.put('/approver/posts/:postId/approve', authenticate, isApprover, approverController.approvePost);
+router.put('/approver/posts/:postId/reject', authenticate, isApprover, approverController.rejectPost);
+router.get('/approver/notifications', authenticate, isApprover, approverController.getApproverNotifications);
 
 // Subscription routes
 router.post('/subscriptions/:username', authenticate, subscriptionController.subscribe);
