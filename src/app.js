@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-require('dotenv').config();
+const path = require('path');
 
 // Import routes
 const routes = require('./routes');
@@ -11,14 +11,39 @@ const routes = require('./routes');
 const app = express();
 
 // Basic middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false // For development only
+}));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Routes
 app.use('/api', routes);
+
+// API Routes
+const authRoutes = require('./routes/auth.routes');
+const adminRoutes = require('./routes/admin.routes');
+const approverRoutes = require('./routes/approver.routes');
+
+// Mount API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/approver', approverRoutes);
+
+// Serve index.html for root route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Handle SPA routing - send index.html for all non-API routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Error Handling Middleware
 const notFoundHandler = (req, res) => {

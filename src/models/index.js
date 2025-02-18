@@ -47,7 +47,13 @@ Object.keys(db).forEach(modelName => {
     }
 });
 
+const Admin = require('./Admin');
+const Approver = require('./Approver');
+
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-module.exports = db;
+module.exports = {
+    Admin,
+    Approver
+};

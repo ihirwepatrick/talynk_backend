@@ -17,9 +17,13 @@ class Approver extends Model {
 }
 
 Approver.init({
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
   username: {
     type: DataTypes.STRING,
-    primaryKey: true,
     allowNull: false,
     unique: true
   },
@@ -34,6 +38,10 @@ Approver.init({
   password: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  role: {
+    type: DataTypes.STRING,
+    defaultValue: 'approver'
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive'),
