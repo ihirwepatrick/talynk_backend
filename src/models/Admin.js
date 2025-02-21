@@ -48,17 +48,12 @@ Admin.init({
     defaultValue: 'admin'
   },
   status: {
-    type: DataTypes.ENUM('active', 'inactive'),
+    type: DataTypes.ENUM('active', 'inactive', 'suspended'),
     defaultValue: 'active'
   },
   permissions: {
-    type: DataTypes.JSON,
-    defaultValue: {
-      canManageUsers: true,
-      canManageApprovers: true,
-      canViewReports: true,
-      canManageSettings: true
-    }
+    type: DataTypes.JSONB,
+    defaultValue: {}
   },
   can_view_approved: {
     type: DataTypes.BOOLEAN,
@@ -74,7 +69,7 @@ Admin.init({
   },
   ads_management: {
     type: DataTypes.BOOLEAN,
-    defaultValue: false
+    defaultValue: true
   },
   can_view_all_approvers: {
     type: DataTypes.BOOLEAN,

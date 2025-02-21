@@ -47,6 +47,7 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password, role } = req.body;
+        console.log('Login attempt:', { email, role }); // Debug log
 
         // Validate input
         if (!email || !password || !role) {
@@ -57,19 +58,25 @@ exports.login = async (req, res) => {
         }
 
         let user;
-        // Check role and find user
+        // Find user based on role
         if (role === 'admin') {
-            user = await Admin.findOne({ where: { email } });
+            user = await Admin.findOne({ 
+                where: { 
+                    email,
+                    status: 'active' 
+                }
+            });
         } else if (role === 'approver') {
-            user = await Approver.findOne({ where: { email } });
-        } else {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Invalid role'
+            user = await Approver.findOne({ 
+                where: { 
+                    email,
+                    status: 'active' 
+                }
             });
         }
 
-        // Check if user exists
+        console.log('User found:', user ? 'yes' : 'no'); // Debug log
+
         if (!user) {
             return res.status(401).json({
                 status: 'error',
@@ -77,35 +84,39 @@ exports.login = async (req, res) => {
             });
         }
 
-        // For testing purposes - replace with proper password check later
-        // const isPasswordValid = await bcrypt.compare(password, user.password);
-        const isPasswordValid = password === 'admin123' || password === 'approver123';
-
-        if (!isPasswordValid) {
+        // For development, using plain password comparison
+        // In production, use bcrypt.compare
+        if (password !== user.password) {
             return res.status(401).json({
                 status: 'error',
                 message: 'Invalid credentials'
             });
         }
 
-        // Generate token
+        // Generate JWT token
         const token = jwt.sign(
-            { 
-                id: user.id, 
+            {
+                id: user.id,
                 email: user.email,
-                role: role 
+                role: role,
+                permissions: user.permissions
             },
             process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '1d' }
+            { expiresIn: '24h' }
         );
 
+        console.log('Token generated successfully'); // Debug log
+
+        // Send response with token
         res.json({
             status: 'success',
             data: {
                 token,
                 user: {
+                    id: user.id,
                     email: user.email,
-                    role: role
+                    role: role,
+                    permissions: user.permissions
                 }
             }
         });
@@ -183,4 +194,32 @@ exports.logout = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// Add a verify token endpoint for testing
+exports.verifyToken = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({
+                status: 'error',
+                message: 'No token provided'
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        
+        res.json({
+            status: 'success',
+            data: {
+                decoded
+            }
+        });
+    } catch (error) {
+        res.status(401).json({
+            status: 'error',
+            message: 'Invalid token'
+        });
+    }
 }; 
