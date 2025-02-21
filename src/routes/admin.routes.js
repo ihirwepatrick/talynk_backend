@@ -1,31 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const { authenticate, requireRole, isAdmin } = require('../middleware/auth');
+const { authenticate, isAdmin } = require('../middleware/auth');
 
-// Protected admin routes
+// Protect all admin routes
 router.use(authenticate, isAdmin);
 
-// Get admin dashboard data
-router.get('/dashboard', async (req, res) => {
-    try {
-        res.json({
-            status: 'success',
-            data: {
-                totalUsers: 100,
-                pendingApprovals: 25,
-                totalVideos: 500
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: error.message
-        });
-    }
-});
+// Dashboard routes
+router.get('/stats', adminController.getDashboardStats);
+router.get('/recent-activity', adminController.getRecentActivity);
 
-router.get('/posts/pending', adminController.getPendingPosts);
-router.patch('/posts/:id/status', adminController.updatePostStatus);
+// Approvers routes
+router.get('/approvers', adminController.getApprovers);
+
+// Users routes
+router.get('/users', adminController.getUsers);
+
+// Videos routes
+router.get('/videos', adminController.getVideos);
+
+// Settings routes
+router.get('/settings', adminController.getSettings);
+router.put('/settings', adminController.updateSettings);
+router.put('/profile', adminController.updateProfile);
+router.put('/password', adminController.updatePassword);
 
 module.exports = router; 
